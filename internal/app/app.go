@@ -12,6 +12,7 @@ import (
 	infragarbage "github.com/na0chan-go/home-dash/internal/infra/garbage"
 	infranotes "github.com/na0chan-go/home-dash/internal/infra/notes"
 	"github.com/na0chan-go/home-dash/internal/infra/system"
+	usedashboard "github.com/na0chan-go/home-dash/internal/usecase/dashboard"
 	usegarbage "github.com/na0chan-go/home-dash/internal/usecase/garbage"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
 	usenotes "github.com/na0chan-go/home-dash/internal/usecase/notes"
@@ -49,6 +50,7 @@ func New(ctx context.Context) (*App, error) {
 	garbageTodayUseCase := usegarbage.NewGetTodayUseCase(garbageProvider, clock)
 	garbageTomorrowUseCase := usegarbage.NewGetTomorrowUseCase(garbageProvider, clock)
 	garbageSummaryUseCase := usegarbage.NewGetSummaryUseCase(garbageProvider, clock)
+	dashboardUseCase := usedashboard.NewGetDashboardUseCase(notesRepo, garbageProvider, clock)
 
 	router := httpapi.NewRouter(
 		healthUseCase,
@@ -60,6 +62,7 @@ func New(ctx context.Context) (*App, error) {
 		garbageTodayUseCase,
 		garbageTomorrowUseCase,
 		garbageSummaryUseCase,
+		dashboardUseCase,
 	)
 	server := &http.Server{
 		Addr:              cfg.AppAddr,
