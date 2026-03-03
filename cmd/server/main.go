@@ -21,16 +21,25 @@ func main() {
 		log.Fatalf("failed to initialize app: %v", err)
 	}
 
+	runErrCh := make(chan error, 1)
 	go func() {
-		<-ctx.Done()
+		runErrCh <- a.Run()
+	}()
+
+	select {
+	case err := <-runErrCh:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server exited with error: %v", err)
+		}
+	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.Shutdown(shutdownCtx); err != nil {
 			log.Printf("graceful shutdown failed: %v", err)
 		}
-	}()
 
-	if err := a.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("server exited with error: %v", err)
+		if err := <-runErrCh; err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server exited with error: %v", err)
+		}
 	}
 }
