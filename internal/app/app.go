@@ -10,8 +10,10 @@ import (
 	httpapi "github.com/na0chan-go/home-dash/internal/app/http"
 	"github.com/na0chan-go/home-dash/internal/infra/config"
 	"github.com/na0chan-go/home-dash/internal/infra/db"
+	infranotes "github.com/na0chan-go/home-dash/internal/infra/notes"
 	"github.com/na0chan-go/home-dash/internal/infra/system"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
+	usenotes "github.com/na0chan-go/home-dash/internal/usecase/notes"
 )
 
 type App struct {
@@ -37,10 +39,24 @@ func New(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
+	notesRepo := infranotes.NewSQLiteRepository(sqliteDB)
+	listNotesUseCase := usenotes.NewListNotesUseCase(notesRepo)
+	addNoteUseCase := usenotes.NewAddNoteUseCase(notesRepo)
+	deleteNoteUseCase := usenotes.NewDeleteNoteUseCase(notesRepo)
+	setPinUseCase := usenotes.NewSetPinUseCase(notesRepo)
+	setDoneUseCase := usenotes.NewSetDoneUseCase(notesRepo)
+
 	clock := system.NewClock()
 	healthUseCase := health.NewGetHealthUseCase(clock)
 
-	router := httpapi.NewRouter(healthUseCase)
+	router := httpapi.NewRouter(
+		healthUseCase,
+		listNotesUseCase,
+		addNoteUseCase,
+		deleteNoteUseCase,
+		setPinUseCase,
+		setDoneUseCase,
+	)
 	server := &http.Server{
 		Addr:              cfg.AppAddr,
 		Handler:           router,
