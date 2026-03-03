@@ -26,11 +26,11 @@ type createNoteRequest struct {
 }
 
 type setPinnedRequest struct {
-	Pinned bool `json:"pinned"`
+	Pinned *bool `json:"pinned"`
 }
 
 type setDoneRequest struct {
-	Done bool `json:"done"`
+	Done *bool `json:"done"`
 }
 
 type deleteNoteResponse struct {
@@ -141,8 +141,12 @@ func (h *NotesHandler) setPin(w http.ResponseWriter, r *http.Request, id int64) 
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	if req.Pinned == nil {
+		writeError(w, http.StatusBadRequest, "pinned is required")
+		return
+	}
 
-	result, err := h.setPinUseCase.Execute(r.Context(), usenotes.SetPinInput{ID: id, Pinned: req.Pinned})
+	result, err := h.setPinUseCase.Execute(r.Context(), usenotes.SetPinInput{ID: id, Pinned: *req.Pinned})
 	if err != nil {
 		h.handleUseCaseError(w, err)
 		return
@@ -157,8 +161,12 @@ func (h *NotesHandler) setDone(w http.ResponseWriter, r *http.Request, id int64)
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	if req.Done == nil {
+		writeError(w, http.StatusBadRequest, "done is required")
+		return
+	}
 
-	result, err := h.setDoneUseCase.Execute(r.Context(), usenotes.SetDoneInput{ID: id, Done: req.Done})
+	result, err := h.setDoneUseCase.Execute(r.Context(), usenotes.SetDoneInput{ID: id, Done: *req.Done})
 	if err != nil {
 		h.handleUseCaseError(w, err)
 		return
