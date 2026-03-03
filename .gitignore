@@ -1,0 +1,31 @@
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Build artifacts
+bin/
+dist/
+out/
+
+# Go
+*.test
+*.prof
+coverage.out
+
+# Runtime data
+data/
+
+# Temporary files
+tmp/
+*.tmp
