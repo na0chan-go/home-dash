@@ -8,10 +8,11 @@ import (
 
 	appconfig "github.com/na0chan-go/home-dash/internal/app/config"
 	httpapi "github.com/na0chan-go/home-dash/internal/app/http"
-	"github.com/na0chan-go/home-dash/internal/infra/config"
 	"github.com/na0chan-go/home-dash/internal/infra/db"
+	infragarbage "github.com/na0chan-go/home-dash/internal/infra/garbage"
 	infranotes "github.com/na0chan-go/home-dash/internal/infra/notes"
 	"github.com/na0chan-go/home-dash/internal/infra/system"
+	usegarbage "github.com/na0chan-go/home-dash/internal/usecase/garbage"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
 	usenotes "github.com/na0chan-go/home-dash/internal/usecase/notes"
 )
@@ -34,11 +35,6 @@ func New(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
-	if _, err := config.LoadGarbageSchedule(cfg.GarbageSchedulePath); err != nil {
-		_ = sqliteDB.Close()
-		return nil, err
-	}
-
 	notesRepo := infranotes.NewSQLiteRepository(sqliteDB)
 	listNotesUseCase := usenotes.NewListNotesUseCase(notesRepo)
 	addNoteUseCase := usenotes.NewAddNoteUseCase(notesRepo)
@@ -49,6 +45,11 @@ func New(ctx context.Context) (*App, error) {
 	clock := system.NewClock()
 	healthUseCase := health.NewGetHealthUseCase(clock)
 
+	garbageProvider := infragarbage.NewJSONScheduleProvider(cfg.GarbageSchedulePath)
+	garbageTodayUseCase := usegarbage.NewGetTodayUseCase(garbageProvider, clock)
+	garbageTomorrowUseCase := usegarbage.NewGetTomorrowUseCase(garbageProvider, clock)
+	garbageSummaryUseCase := usegarbage.NewGetSummaryUseCase(garbageProvider, clock)
+
 	router := httpapi.NewRouter(
 		healthUseCase,
 		listNotesUseCase,
@@ -56,6 +57,9 @@ func New(ctx context.Context) (*App, error) {
 		deleteNoteUseCase,
 		setPinUseCase,
 		setDoneUseCase,
+		garbageTodayUseCase,
+		garbageTomorrowUseCase,
+		garbageSummaryUseCase,
 	)
 	server := &http.Server{
 		Addr:              cfg.AppAddr,
