@@ -1,0 +1,6 @@
+{
+  "rules": [
+    {"weekday": "monday", "type": "burnable"},
+    {"weekday": "thursday", "type": "non-burnable"}
+  ]
+}
