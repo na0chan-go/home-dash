@@ -1,6 +1,9 @@
 {
-  "rules": [
-    {"weekday": "monday", "type": "burnable"},
-    {"weekday": "thursday", "type": "non-burnable"}
-  ]
+  "sunday": [],
+  "monday": ["燃えるゴミ"],
+  "tuesday": ["燃えないゴミ", "有害危険ゴミ", "古紙類", "繊維"],
+  "wednesday": [],
+  "thursday": ["燃えるゴミ"],
+  "friday": ["びん", "かん", "ペットボトル", "容器包装プラスチック"],
+  "saturday": []
 }
