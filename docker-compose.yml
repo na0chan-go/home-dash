@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ADDR=${APP_ADDR:-:8080}
+      - DB_PATH=${DB_PATH:-/data/app.db}
+      - GARBAGE_SCHEDULE_PATH=${GARBAGE_SCHEDULE_PATH:-config/garbage_schedule.json}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
