@@ -1,57 +1,122 @@
 # HomeDash
 
-家庭内LANで動作する、家庭向けダッシュボードアプリです。
+HomeDash は家庭内LANで運用する「家庭ホワイトボード」アプリです。
+MVP0では次の3機能に限定しています。
 
-## 目的
+- 連絡共有（notice）
+- 買い物メモ（shopping）
+- ゴミ表示（今日・明日）
 
-- リビング〜キッチン導線で使える「家庭ホワイトボード」を提供する
-- 外部公開せず、ローカルネットワーク内で運用する
-- Docker前提で運用し、データはローカル保存する
+## 前提
 
-## MVP0のスコープ
+- 外部公開はしない（家庭内LAN / 必要時はVPN）
+- Docker前提で運用する
+- データはローカル保存する（SQLite / 設定ファイル）
 
-MVP0では次の3機能のみを実装します。
+## 起動方法
 
-1. 共有メモ（連絡）
-- 追加
-- 一覧
-- ピン留め
-- 削除（またはアーカイブ）
+1. 必要に応じて `.env.example` をもとに `.env` を作成
+2. 次のコマンドで起動
 
-2. 買い物メモ
-- 追加
-- 一覧
-- チェック（done）
+```bash
+docker compose up --build
+```
 
-3. ゴミ表示（今日・明日）
-- 曜日固定ルール
-- `config/garbage_schedule.json` から読み込み
-- 祝日や特例は扱わない
+起動後のアクセス先:
 
-## 想定アーキテクチャ
+- API: `http://localhost:8080`
+- ヘルスチェック: `http://localhost:8080/api/v1/health`
 
-依存方向は次を原則とします。
+停止:
 
-- `app -> usecase -> domain`
-- `usecase -> ports <- infra`
+```bash
+docker compose down
+```
 
-主な責務は次のとおりです。
+## 初期設定
 
-- `internal/domain`: 純粋モデル
-- `internal/usecase`: ユースケース実装 + DTO
-- `internal/ports`: Repository等のinterface
-- `internal/infra`: ports実装（SQLite、設定ファイル読み込み）
-- `internal/app`: HTTP、ルーティング、scheduler、DI（配線のみ）
-- `internal/ui`: 暫定SSRテンプレ・静的ファイル
+### `.env`
 
-## データ方針
+`.env` はコミットしません。必要なら `.env.example` をコピーして利用します。
 
-- メモ類: SQLite（`/data/app.db`）
-- ゴミ表示: `config/garbage_schedule.json`
-- `.env` はコミットしない（`.env.example`のみ）
+主要な環境変数:
 
-## 開発メモ
+- `APP_ADDR`（デフォルト: `:8080`）
+- `DB_PATH`（デフォルト: `/data/app.db`）
+- `GARBAGE_SCHEDULE_PATH`（デフォルト: `config/garbage_schedule.json`）
 
-- README、コメント、PR、コミットメッセージは日本語
-- 新規機能は縦スライス（domain -> ports -> usecase -> infra -> handler -> SSR）で実装
+### `config/garbage_schedule.json`
 
+ゴミ曜日ルールは JSON ファイルで管理します（DB化しません）。
+
+- キー: `sunday`〜`saturday`
+- 値: 文字列配列
+- 空配列 `[]` は「なし」
+
+例:
+
+```json
+{
+  "sunday": [],
+  "monday": ["燃えるゴミ"],
+  "tuesday": ["燃えないゴミ", "有害危険ゴミ", "古紙類", "繊維"],
+  "wednesday": [],
+  "thursday": ["燃えるゴミ"],
+  "friday": ["びん", "かん", "ペットボトル", "容器包装プラスチック"],
+  "saturday": []
+}
+```
+
+## API（MVP0）
+
+すべて `/api/v1` 配下、JSONレスポンスです。
+
+### health
+
+- `GET /api/v1/health`
+
+### dashboard
+
+- `GET /api/v1/dashboard`
+
+初期表示用の集約APIです。以下をまとめて返します。
+
+- `generatedAt`（Asia/Tokyo）
+- `notes.notice`
+- `notes.shopping`
+- `garbage.today`
+- `garbage.tomorrow`
+
+### notes
+
+- `GET /api/v1/notes?kind=notice|shopping&limit=50`
+- `POST /api/v1/notes`
+- `DELETE /api/v1/notes/:id`
+- `PATCH /api/v1/notes/:id/pin`
+- `PATCH /api/v1/notes/:id/done`
+
+作成例:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/notes \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"notice","body":"牛乳を買ってください","pinned":true}'
+```
+
+### garbage
+
+- `GET /api/v1/garbage/today`
+- `GET /api/v1/garbage/tomorrow`
+- `GET /api/v1/garbage/summary`
+
+## 注意事項
+
+- 家庭内LAN前提です。インターネットへ直接公開しないでください。
+- `.env` はコミットしないでください。
+- 祝日・年末年始などの特例は MVP0 対象外です（将来対応予定）。
+- MVP0範囲外（天気/室温/株価/献立/在庫/IoT等）は実装しません。
+
+## 開発ルール
+
+詳細な開発ルールは `AGENT.md` を参照してください。
+アーキテクチャ概要は `docs/ARCHITECTURE.md` に記載しています。
