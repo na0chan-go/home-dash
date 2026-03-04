@@ -56,8 +56,18 @@ func (s *backupScheduler) loop() {
 	for {
 		select {
 		case <-ticker.C:
-			runCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			result, err := s.run(runCtx)
+			runCtx, cancel := context.WithCancel(context.Background())
+			go func() {
+				select {
+				case <-s.stopCh:
+					cancel()
+				case <-runCtx.Done():
+				}
+			}()
+
+			runCtxWithTimeout, timeoutCancel := context.WithTimeout(runCtx, 2*time.Minute)
+			result, err := s.run(runCtxWithTimeout)
+			timeoutCancel()
 			cancel()
 			if err != nil {
 				log.Printf("level=error component=backup_scheduler err=%v", err)

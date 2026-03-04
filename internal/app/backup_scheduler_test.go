@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -30,3 +31,25 @@ func TestBackupScheduler_RunsPeriodically(t *testing.T) {
 	}
 }
 
+func TestBackupScheduler_ShutdownCancelsRunningTask(t *testing.T) {
+	started := make(chan struct{})
+	scheduler := newBackupScheduler(10*time.Millisecond, func(ctx context.Context) (usebackup.BackupDTO, error) {
+		close(started)
+		<-ctx.Done()
+		return usebackup.BackupDTO{}, ctx.Err()
+	})
+
+	scheduler.Start()
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("scheduler task did not start")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := scheduler.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("unexpected shutdown error: %v", err)
+	}
+}

@@ -92,6 +92,11 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
+	if err := a.server.Shutdown(ctx); err != nil {
+		_ = a.db.Close()
+		return err
+	}
+
 	if a.backupScheduler != nil {
 		if err := a.backupScheduler.Shutdown(ctx); err != nil {
 			_ = a.db.Close()
@@ -99,9 +104,5 @@ func (a *App) Shutdown(ctx context.Context) error {
 		}
 	}
 
-	if err := a.server.Shutdown(ctx); err != nil {
-		_ = a.db.Close()
-		return err
-	}
 	return a.db.Close()
 }
