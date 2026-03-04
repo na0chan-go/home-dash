@@ -15,6 +15,7 @@ const showDone = ref(false)
 const validationError = ref('')
 const actionError = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
+const deleteTarget = ref<Note | null>(null)
 
 const displayedItems = computed(() => {
   if (showDone.value) {
@@ -64,14 +65,26 @@ async function onToggleDone(note: Note): Promise<void> {
   }
 }
 
-async function onDelete(note: Note): Promise<void> {
-  if (!window.confirm('削除しますか？')) {
+function requestDelete(note: Note): void {
+  if (isPending(note.id)) {
     return
   }
+  deleteTarget.value = note
+}
 
+function cancelDelete(): void {
+  deleteTarget.value = null
+}
+
+async function confirmDelete(): Promise<void> {
+  if (!deleteTarget.value) {
+    return
+  }
+  const target = deleteTarget.value
+  deleteTarget.value = null
   actionError.value = ''
   try {
-    await props.onDeleteNote(note)
+    await props.onDeleteNote(target)
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : '削除に失敗しました'
   }
@@ -107,12 +120,22 @@ async function onDelete(note: Note): Promise<void> {
         <button class="small" type="button" :disabled="isPending(note.id)" @click="onToggleDone(note)">
           {{ note.done ? '未完了へ' : '完了' }}
         </button>
-        <button class="small danger" type="button" :disabled="isPending(note.id)" @click="onDelete(note)">
+        <button class="small danger" type="button" :disabled="isPending(note.id)" @click="requestDelete(note)">
           削除
         </button>
       </li>
     </ul>
     <p v-else class="empty">表示する買い物メモはありません</p>
+
+    <div v-if="deleteTarget" class="confirm-overlay" role="dialog" aria-modal="true" aria-label="削除確認">
+      <div class="confirm-modal">
+        <p>削除しますか？</p>
+        <div class="confirm-actions">
+          <button type="button" class="small" @click="cancelDelete">キャンセル</button>
+          <button type="button" class="small danger" @click="confirmDelete">削除</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -210,5 +233,33 @@ li.done {
 .empty {
   margin: 10px 0 0;
   color: #666;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.confirm-modal {
+  width: min(360px, 100%);
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 14px;
+}
+
+.confirm-modal p {
+  margin: 0 0 12px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>
