@@ -15,6 +15,32 @@ import {
   updateNotePin
 } from '../api/client'
 
+const TOKYO_TIMEZONE = 'Asia/Tokyo'
+const DEFAULT_DIM_START = '22:00'
+const DEFAULT_DIM_END = '06:00'
+const DEFAULT_SCREENSAVER_IDLE_MS = 5 * 60 * 1000
+
+const nightStartMinutes = parseHourMinute(import.meta.env.VITE_DIM_START ?? DEFAULT_DIM_START, 22 * 60)
+const nightEndMinutes = parseHourMinute(import.meta.env.VITE_DIM_END ?? DEFAULT_DIM_END, 6 * 60)
+const screenSaverIdleMs = parsePositiveInt(
+  import.meta.env.VITE_SCREENSAVER_IDLE_MS ?? String(DEFAULT_SCREENSAVER_IDLE_MS),
+  DEFAULT_SCREENSAVER_IDLE_MS
+)
+
+const tokyoHourMinuteFormatter = new Intl.DateTimeFormat('ja-JP', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: TOKYO_TIMEZONE
+})
+
+const tokyoTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: TOKYO_TIMEZONE
+})
+
 const dashboard = ref<DashboardResponse | null>(null)
 const loading = ref(true)
 const fatalError = ref('')
@@ -24,9 +50,145 @@ const lastUpdatedAt = ref<Date | null>(null)
 const pendingIDs = ref<number[]>([])
 const isOffline = ref(!navigator.onLine)
 const isLoadingDashboard = ref(false)
+const isNightDim = ref(false)
+const isScreenSaver = ref(false)
+const screenSaverNow = ref(new Date())
 
 let pollTimer: number | undefined
+let nightTimer: number | undefined
+let inactivityTimer: number | undefined
+let screenSaverClockTimer: number | undefined
 let tempIDSeed = -1
+
+function parseHourMinute(raw: string, fallbackMinutes: number): number {
+  const normalized = raw.trim()
+  const match = normalized.match(/^([01]?\d|2[0-3]):([0-5]\d)$/)
+  if (!match) {
+    return fallbackMinutes
+  }
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+function parsePositiveInt(raw: string, fallback: number): number {
+  const parsed = Number.parseInt(raw.trim(), 10)
+  if (Number.isNaN(parsed) || parsed < 1) {
+    return fallback
+  }
+  return parsed
+}
+
+function getTokyoMinutes(now: Date): number {
+  const parts = tokyoHourMinuteFormatter.formatToParts(now)
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0')
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? '0')
+  return hour * 60 + minute
+}
+
+function isWithinNightWindow(current: number, start: number, end: number): boolean {
+  if (start === end) {
+    return false
+  }
+  if (start < end) {
+    return current >= start && current < end
+  }
+  return current >= start || current < end
+}
+
+function updateNightDim(): void {
+  isNightDim.value = isWithinNightWindow(getTokyoMinutes(new Date()), nightStartMinutes, nightEndMinutes)
+}
+
+function startNightTimer(): void {
+  if (nightTimer !== undefined) {
+    return
+  }
+  nightTimer = window.setInterval(() => {
+    updateNightDim()
+  }, 60_000)
+}
+
+function stopNightTimer(): void {
+  if (nightTimer === undefined) {
+    return
+  }
+  window.clearInterval(nightTimer)
+  nightTimer = undefined
+}
+
+function clearInactivityTimer(): void {
+  if (inactivityTimer === undefined) {
+    return
+  }
+  window.clearTimeout(inactivityTimer)
+  inactivityTimer = undefined
+}
+
+function scheduleInactivityTimer(): void {
+  clearInactivityTimer()
+  if (isScreenSaver.value) {
+    return
+  }
+  inactivityTimer = window.setTimeout(() => {
+    enterScreenSaver()
+  }, screenSaverIdleMs)
+}
+
+function startScreenSaverClock(): void {
+  if (screenSaverClockTimer !== undefined) {
+    return
+  }
+  screenSaverNow.value = new Date()
+  screenSaverClockTimer = window.setInterval(() => {
+    screenSaverNow.value = new Date()
+  }, 1_000)
+}
+
+function stopScreenSaverClock(): void {
+  if (screenSaverClockTimer === undefined) {
+    return
+  }
+  window.clearInterval(screenSaverClockTimer)
+  screenSaverClockTimer = undefined
+}
+
+function enterScreenSaver(): void {
+  if (isScreenSaver.value || document.visibilityState !== 'visible') {
+    return
+  }
+  isScreenSaver.value = true
+  clearInactivityTimer()
+  startScreenSaverClock()
+}
+
+async function exitScreenSaver(): Promise<void> {
+  if (!isScreenSaver.value) {
+    scheduleInactivityTimer()
+    return
+  }
+
+  isScreenSaver.value = false
+  stopScreenSaverClock()
+  scheduleInactivityTimer()
+
+  if (!isOffline.value && document.visibilityState === 'visible') {
+    await loadDashboard()
+  }
+}
+
+function handleScreenSaverDismiss(): void {
+  void exitScreenSaver()
+}
+
+function handleUserActivity(): void {
+  if (document.visibilityState !== 'visible') {
+    return
+  }
+  if (isScreenSaver.value) {
+    void exitScreenSaver()
+    return
+  }
+  scheduleInactivityTimer()
+}
 
 function dateDesc(a: string, b: string): number {
   return Date.parse(b) - Date.parse(a)
@@ -280,9 +442,11 @@ const lastUpdatedLabel = computed(() => {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-    timeZone: 'Asia/Tokyo'
+    timeZone: TOKYO_TIMEZONE
   }).format(lastUpdatedAt.value)
 })
+
+const screenSaverTimeLabel = computed(() => tokyoTimeFormatter.format(screenSaverNow.value))
 
 function startPolling(): void {
   if (pollTimer !== undefined || isOffline.value) {
@@ -302,9 +466,17 @@ function stopPolling(): void {
 }
 
 function handleVisibilityChange(): void {
-  if (document.visibilityState === 'visible' && !isOffline.value) {
-    void loadDashboard()
+  if (document.visibilityState === 'visible') {
+    updateNightDim()
+    if (!isOffline.value) {
+      void loadDashboard()
+    }
+    if (!isScreenSaver.value) {
+      scheduleInactivityTimer()
+    }
+    return
   }
+  clearInactivityTimer()
 }
 
 function handleOffline(): void {
@@ -322,22 +494,37 @@ onMounted(async () => {
   window.addEventListener('offline', handleOffline)
   window.addEventListener('online', handleOnline)
   document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('pointerdown', handleUserActivity)
+  window.addEventListener('keydown', handleUserActivity)
+  window.addEventListener('touchstart', handleUserActivity)
+
+  updateNightDim()
+  startNightTimer()
 
   if (isOffline.value) {
     loading.value = false
     stopPolling()
+    scheduleInactivityTimer()
     return
   }
 
   await loadDashboard()
   startPolling()
+  scheduleInactivityTimer()
 })
 
 onUnmounted(() => {
   stopPolling()
+  stopNightTimer()
+  clearInactivityTimer()
+  stopScreenSaverClock()
+
   window.removeEventListener('offline', handleOffline)
   window.removeEventListener('online', handleOnline)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('pointerdown', handleUserActivity)
+  window.removeEventListener('keydown', handleUserActivity)
+  window.removeEventListener('touchstart', handleUserActivity)
 })
 </script>
 
@@ -373,6 +560,21 @@ onUnmounted(() => {
         :on-delete-note="handleDelete"
       />
       <GarbagePanel :today="dashboard.garbage.today" :tomorrow="dashboard.garbage.tomorrow" />
+    </div>
+
+    <div v-if="isNightDim && !isScreenSaver" class="night-dim" aria-hidden="true" />
+
+    <div
+      v-if="isScreenSaver"
+      class="screensaver"
+      role="button"
+      tabindex="0"
+      aria-label="スクリーンセーバー。タップで解除"
+      @pointerdown.prevent="handleScreenSaverDismiss"
+      @keydown.enter.prevent="handleScreenSaverDismiss"
+      @keydown.space.prevent="handleScreenSaverDismiss"
+    >
+      <div class="screensaver-time">{{ screenSaverTimeLabel }}</div>
     </div>
   </main>
 </template>
@@ -428,6 +630,45 @@ h1 {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.night-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.36);
+  pointer-events: none;
+  z-index: 30;
+}
+
+.screensaver {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(7, 10, 17, 0.96);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.screensaver-time {
+  color: #d8e7ff;
+  font-size: clamp(2rem, 9vw, 4.8rem);
+  letter-spacing: 0.08em;
+  user-select: none;
+  animation: drift 48s linear infinite alternate;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(-15vw, -10vh);
+  }
+  50% {
+    transform: translate(12vw, 8vh);
+  }
+  100% {
+    transform: translate(-8vw, 14vh);
+  }
 }
 
 @media (max-width: 900px) {

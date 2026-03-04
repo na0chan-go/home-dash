@@ -55,6 +55,31 @@ docker compose down
 
 ホーム画面から起動すると standalone 表示（アプリ風表示）になります。
 
+## 常設運用の推奨設定（焼き付き/眩しさ対策）
+
+- 夜間暗転: 既定で `22:00-06:00`（Asia/Tokyo）に画面全体を暗転します。
+- スクリーンセーバ: 既定で `5分` 無操作時に薄暗い画面へ切り替わります。
+- 解除方法: 画面をタップ（またはキー入力）すると即解除します。
+- 解除時動作: 解除したタイミングで `dashboard` を即再取得します。
+
+時間設定を変える場合は `web/.env` を作成し、以下を設定してから再ビルドしてください。
+
+```bash
+cp web/.env.example web/.env
+```
+
+```dotenv
+VITE_DIM_START=22:00
+VITE_DIM_END=06:00
+VITE_SCREENSAVER_IDLE_MS=300000
+```
+
+反映:
+
+```bash
+docker compose up --build
+```
+
 ## 初期設定
 
 ### `.env`
