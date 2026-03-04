@@ -11,6 +11,9 @@ services:
       - GARBAGE_SCHEDULE_PATH=${GARBAGE_SCHEDULE_PATH:-config/garbage_schedule.json}
       - WEB_DIST_PATH=${WEB_DIST_PATH:-web/dist}
       - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-}
+      - BACKUP_DIR
+      - BACKUP_KEEP
+      - BACKUP_INTERVAL
       - AUTH_TOKEN
     volumes:
       - ./data:/data

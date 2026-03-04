@@ -210,3 +210,49 @@ func TestAuthTokenSkipsNonAPIPath(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
 }
+
+func TestAdminEndpointRequiresAuthTokenConfig(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/backup", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"FORBIDDEN"`) {
+		t.Fatalf("unexpected response body: %s", rec.Body.String())
+	}
+}
+
+func TestAdminEndpointRequiresBearerTokenWhenConfigured(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/backup", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
+	}
+}
+
+func TestAdminEndpointAllowsValidBearerTokenWhenConfigured(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/backup", nil)
+	req.Header.Set("Authorization", "Bearer secret-token")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}

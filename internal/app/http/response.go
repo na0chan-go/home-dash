@@ -10,6 +10,7 @@ const (
 	errorCodeValidation   = "VALIDATION_ERROR"
 	errorCodeNotFound     = "NOT_FOUND"
 	errorCodeUnauthorized = "UNAUTHORIZED"
+	errorCodeForbidden    = "FORBIDDEN"
 	errorCodeInternal     = "INTERNAL_ERROR"
 	errorCodeConfig       = "CONFIG_ERROR"
 )

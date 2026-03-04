@@ -66,6 +66,9 @@ docker compose down
 - `APP_ADDR`（デフォルト: `:8080`）
 - `DB_PATH`（デフォルト: `/data/app.db`）
 - `GARBAGE_SCHEDULE_PATH`（デフォルト: `config/garbage_schedule.json`）
+- `BACKUP_DIR`（デフォルト: `/data/backups`）
+- `BACKUP_KEEP`（デフォルト: `30`）
+- `BACKUP_INTERVAL`（デフォルト: `24h`）
 - `AUTH_TOKEN`（任意。設定すると `/api/v1/*` 認証ON）
 
 ### `config/garbage_schedule.json`
@@ -133,6 +136,37 @@ curl -X POST http://localhost:8080/api/v1/notes \
 - `GET /api/v1/garbage/tomorrow`
 - `GET /api/v1/garbage/summary`
 
+### admin（バックアップ）
+
+- `POST /api/v1/admin/backup`
+
+`AUTH_TOKEN` 設定時のみ実行できます。`Authorization: Bearer <token>` が必須です。
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/backup \
+  -H "Authorization: Bearer <token>"
+```
+
+## バックアップ/復元
+
+### バックアップ
+
+- 保存先: `/data/backups/`
+- 形式: `app-YYYYMMDD-HHMMSS.db`（同一秒は連番付き）
+- 保持数: `BACKUP_KEEP` を超えた古い世代は自動削除
+- 自動実行: サーバ起動後、`BACKUP_INTERVAL` ごとに定期バックアップ
+- 手動実行: `POST /api/v1/admin/backup`
+
+### 復元手順
+
+1. `docker compose down` で停止
+2. 念のため現行DBを退避  
+   例: `cp ./data/app.db ./data/app.db.before-restore`
+3. 復元したいバックアップを `./data/app.db` に上書き  
+   例: `cp ./data/backups/app-20260304-130000.db ./data/app.db`
+4. `docker compose up --build -d` で起動
+5. `GET /api/v1/health` と画面表示を確認
+
 ## 注意事項
 
 - 家庭内LAN前提です。インターネットへ直接公開しないでください。
@@ -141,7 +175,7 @@ curl -X POST http://localhost:8080/api/v1/notes \
 - MVP0範囲外（天気/室温/株価/献立/在庫/IoT等）は実装しません。
 - 本アプリは公開前提で作っていません。ルーターのポート開放はしないでください。
 - VPN経由で使う場合は `AUTH_TOKEN` 設定を強く推奨します。
-- `admin` 系エンドポイント（`/api/v1/admin/*`）は提供していません。運用で利用しません。
+- `admin` 系エンドポイントはバックアップ用途のみ提供しています（`/api/v1/admin/backup`）。
 - オフライン時も UI の枠は開けますが、`/api/v1/*` のデータ更新はできません。
   オンライン復帰後は自動で再取得して通常動作に戻ります。
 
