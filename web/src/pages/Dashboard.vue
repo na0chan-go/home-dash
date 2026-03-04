@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRaw } from 'vue'
 import NoticeBoard from '../components/NoticeBoard.vue'
 import ShoppingList from '../components/ShoppingList.vue'
 import GarbagePanel from '../components/GarbagePanel.vue'
@@ -106,7 +106,7 @@ async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, c
   }
 
   operationError.value = ''
-  const snapshot = structuredClone(state)
+  const snapshot = structuredClone(toRaw(state)) as DashboardResponse
   apply(state)
 
   try {
