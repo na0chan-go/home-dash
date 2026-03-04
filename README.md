@@ -7,6 +7,13 @@ MVP0では次の3機能に限定しています。
 - 買い物メモ（shopping）
 - ゴミ表示（今日・明日）
 
+## 画面イメージ
+
+![HomeDash ダッシュボード（プレースホルダー）](docs/screenshots/dashboard.png)
+
+`docs/screenshots/dashboard.png` はプレースホルダーです。  
+運用開始前に実画面のスクリーンショットへ差し替えてください。
+
 ## 前提
 
 - 外部公開はしない（家庭内LAN / 必要時はVPN）
