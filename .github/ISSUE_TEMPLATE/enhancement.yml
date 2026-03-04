@@ -1,0 +1,48 @@
+name: 改善提案
+description: 使い勝手や運用改善の提案をします
+title: "[Enhancement] "
+labels:
+  - "type: enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        改善の目的と、MVP0スコープ（連絡/買い物/ゴミ）との整合を確認できる形で記入してください。
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的（何が困るか）
+      placeholder: 現状のどこが困るか
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案（どうしたいか）
+      placeholder: こう改善したい
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案
+      placeholder: 他に考えた方法があれば記入
+    validations:
+      required: true
+  - type: dropdown
+    id: scope_check
+    attributes:
+      label: MVP0逸脱チェック
+      description: 天気/株価/在庫など別機能へ広がらないかを確認
+      options:
+        - 逸脱しない（連絡/買い物/ゴミの範囲）
+        - 逸脱の可能性あり
+    validations:
+      required: true
+  - type: textarea
+    id: scope_reason
+    attributes:
+      label: 逸脱の可能性がある場合の補足
+      placeholder: どの点がスコープ外になりそうか
+    validations:
+      required: false
