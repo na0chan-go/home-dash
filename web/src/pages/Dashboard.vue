@@ -539,7 +539,6 @@ onUnmounted(() => {
     <header class="header">
       <div class="brand">
         <h1 class="title">HomeDash</h1>
-        <p class="tagline">家庭ホワイトボード</p>
       </div>
       <div class="status">
         <span class="status-chip">更新: {{ lastUpdatedLabel }}</span>
@@ -631,21 +630,13 @@ onUnmounted(() => {
 }
 
 .brand {
-  display: grid;
-  gap: 4px;
+  display: block;
 }
 
 .title {
   margin: 0;
   font-size: clamp(2rem, 3.3vw, 2.6rem);
   letter-spacing: 0.01em;
-}
-
-.tagline {
-  margin: 0;
-  color: #68738a;
-  font-size: 0.95rem;
-  font-weight: 600;
 }
 
 .status {

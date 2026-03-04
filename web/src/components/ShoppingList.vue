@@ -149,7 +149,7 @@ async function confirmDelete(): Promise<void> {
 .is-done {
   color: #7b8598;
   border-color: #d6deeb;
-  background: linear-gradient(180deg, #f9fbfe 0%, #f0f3f9 100%);
+  background: #f3f6fb;
   text-decoration: line-through;
 }
 </style>

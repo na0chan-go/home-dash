@@ -49,9 +49,8 @@ input {
   border: 1px solid var(--hd-color-border);
   border-radius: var(--hd-radius-panel);
   padding: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  background: var(--hd-color-surface);
   box-shadow: var(--hd-shadow-panel);
-  backdrop-filter: blur(2px);
   animation: hd-fade-up 220ms ease;
 }
 
@@ -90,7 +89,7 @@ input {
   padding: 0 15px;
   border: 1px solid var(--hd-color-border-strong);
   border-radius: var(--hd-radius-control);
-  background: linear-gradient(180deg, #ffffff 0%, var(--hd-color-surface-muted) 100%);
+  background: var(--hd-color-surface-muted);
   color: var(--hd-color-text);
   font-size: 0.92rem;
   font-weight: 600;
@@ -116,9 +115,8 @@ input {
 
 .hd-btn-primary {
   border-color: var(--hd-color-primary-border);
-  background: linear-gradient(160deg, #3f7af3 0%, var(--hd-color-primary) 68%);
+  background: var(--hd-color-primary);
   color: var(--hd-color-primary-text);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
 .hd-btn-small {
@@ -130,7 +128,7 @@ input {
 .hd-btn-danger {
   color: var(--hd-color-danger);
   border-color: rgba(182, 58, 69, 0.34);
-  background: linear-gradient(180deg, #fff7f7 0%, #fff1f2 100%);
+  background: #fff6f7;
 }
 
 .hd-btn:disabled {
@@ -168,7 +166,7 @@ input {
   padding: 10px;
   border-radius: var(--hd-radius-control);
   border: 1px solid #e4ebf7;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%);
+  background: var(--hd-color-surface);
   transition:
     transform var(--hd-transition-fast),
     background var(--hd-transition-fast),
@@ -178,7 +176,7 @@ input {
 @media (hover: hover) {
   .hd-list-item:hover {
     transform: translateY(-1px);
-    background: linear-gradient(180deg, #ffffff 0%, var(--hd-color-surface-hover) 100%);
+    background: var(--hd-color-surface-hover);
     border-color: #d4def0;
   }
 }
