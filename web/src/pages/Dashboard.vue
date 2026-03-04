@@ -71,6 +71,9 @@ function isPending(id: number): boolean {
 
 function getOperationErrorMessage(err: unknown): string {
   if (err instanceof APIError) {
+    if (err.status === 401 || err.code === 'UNAUTHORIZED') {
+      return '認証が必要です。管理者にトークン設定を確認してください。'
+    }
     if (err.code === 'NOT_FOUND') {
       return '対象が見つかりません。画面を再取得して再度お試しください。'
     }
@@ -98,6 +101,10 @@ async function loadDashboard(): Promise<void> {
   } catch (err) {
     console.error(err)
     refreshFailed.value = true
+    if (err instanceof APIError && (err.status === 401 || err.code === 'UNAUTHORIZED')) {
+      fatalError.value = '認証が必要です。Authorization: Bearer <token> を設定してください。'
+      return
+    }
     if (!dashboard.value) {
       fatalError.value = 'ダッシュボードの取得に失敗しました'
     }

@@ -11,6 +11,7 @@ type Config struct {
 	GarbageSchedulePath string
 	WebDistPath         string
 	CORSAllowOrigins    []string
+	AuthToken           string
 }
 
 func LoadFromEnv() Config {
@@ -20,6 +21,7 @@ func LoadFromEnv() Config {
 		GarbageSchedulePath: getEnv("GARBAGE_SCHEDULE_PATH", "config/garbage_schedule.json"),
 		WebDistPath:         getEnv("WEB_DIST_PATH", "web/dist"),
 		CORSAllowOrigins:    parseCSVEnv("CORS_ALLOW_ORIGINS"),
+		AuthToken:           strings.TrimSpace(os.Getenv("AUTH_TOKEN")),
 	}
 }
 

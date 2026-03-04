@@ -22,6 +22,7 @@ func NewRouter(
 	dashboardUseCase *usedashboard.GetDashboardUseCase,
 	spaHandler *SPAHandler,
 	corsAllowOrigins []string,
+	authToken string,
 ) http.Handler {
 	mux := http.NewServeMux()
 	healthHandler := NewHealthHandler(healthUseCase)
@@ -45,5 +46,5 @@ func NewRouter(
 
 	mux.HandleFunc("/", spaHandler.Serve)
 
-	return applyMiddlewares(mux, corsAllowOrigins)
+	return applyMiddlewares(mux, corsAllowOrigins, authToken)
 }

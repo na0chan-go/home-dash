@@ -13,6 +13,19 @@ MVP0では次の3機能に限定しています。
 - Docker前提で運用する
 - データはローカル保存する（SQLite / 設定ファイル）
 
+## 運用モード（認証）
+
+### 家庭内LANモード（既定）
+
+- `AUTH_TOKEN` 未設定
+- 今まで通り認証なしで利用
+
+### VPN/外部アクセス想定モード（推奨）
+
+- `AUTH_TOKEN` を設定
+- `/api/v1/*` は `Authorization: Bearer <token>` が必須
+- `/`（Vue画面）は開けますが、トークンなしではAPIが `401` になり画面に認証エラーが表示されます
+
 ## 起動方法
 
 1. 必要に応じて `.env.example` をもとに `.env` を作成
@@ -53,6 +66,7 @@ docker compose down
 - `APP_ADDR`（デフォルト: `:8080`）
 - `DB_PATH`（デフォルト: `/data/app.db`）
 - `GARBAGE_SCHEDULE_PATH`（デフォルト: `config/garbage_schedule.json`）
+- `AUTH_TOKEN`（任意。設定すると `/api/v1/*` 認証ON）
 
 ### `config/garbage_schedule.json`
 
@@ -109,6 +123,7 @@ docker compose down
 ```bash
 curl -X POST http://localhost:8080/api/v1/notes \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"kind":"notice","body":"牛乳を買ってください","pinned":true}'
 ```
 
@@ -124,6 +139,9 @@ curl -X POST http://localhost:8080/api/v1/notes \
 - `.env` はコミットしないでください。
 - 祝日・年末年始などの特例は MVP0 対象外です（将来対応予定）。
 - MVP0範囲外（天気/室温/株価/献立/在庫/IoT等）は実装しません。
+- 本アプリは公開前提で作っていません。ルーターのポート開放はしないでください。
+- VPN経由で使う場合は `AUTH_TOKEN` 設定を強く推奨します。
+- `admin` 系エンドポイント（`/api/v1/admin/*`）は提供していません。運用で利用しません。
 - オフライン時も UI の枠は開けますが、`/api/v1/*` のデータ更新はできません。
   オンライン復帰後は自動で再取得して通常動作に戻ります。
 
