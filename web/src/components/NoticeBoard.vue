@@ -1,18 +1,102 @@
 <script setup lang="ts">
+import { nextTick, ref } from 'vue'
 import type { Note } from '../api/client'
 
-defineProps<{
+const props = defineProps<{
   items: Note[]
+  pendingIds: number[]
+  onAdd: (body: string) => Promise<void>
+  onTogglePin: (note: Note) => Promise<void>
+  onDeleteNote: (note: Note) => Promise<void>
 }>()
+
+const body = ref('')
+const validationError = ref('')
+const actionError = ref('')
+const inputRef = ref<HTMLInputElement | null>(null)
+
+function validate(raw: string): string {
+  const normalized = raw.trim()
+  if (normalized === '') {
+    return '本文を入力してください'
+  }
+  if ([...normalized].length > 200) {
+    return '200文字以内で入力してください'
+  }
+  return ''
+}
+
+function isPending(id: number): boolean {
+  return props.pendingIds.includes(id)
+}
+
+async function submit(): Promise<void> {
+  validationError.value = validate(body.value)
+  actionError.value = ''
+  if (validationError.value !== '') {
+    return
+  }
+
+  try {
+    await props.onAdd(body.value.trim())
+    body.value = ''
+    await nextTick()
+    inputRef.value?.focus()
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : '追加に失敗しました'
+  }
+}
+
+async function onTogglePin(note: Note): Promise<void> {
+  actionError.value = ''
+  try {
+    await props.onTogglePin(note)
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : '更新に失敗しました'
+  }
+}
+
+async function onDelete(note: Note): Promise<void> {
+  if (!window.confirm('削除しますか？')) {
+    return
+  }
+
+  actionError.value = ''
+  try {
+    await props.onDeleteNote(note)
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : '削除に失敗しました'
+  }
+}
 </script>
 
 <template>
   <section class="panel">
     <h2>連絡</h2>
+
+    <form class="composer" @submit.prevent="submit">
+      <input
+        ref="inputRef"
+        v-model="body"
+        type="text"
+        placeholder="連絡を入力"
+        maxlength="200"
+        autocomplete="off"
+      />
+      <button type="submit">追加</button>
+    </form>
+    <p v-if="validationError" class="error">{{ validationError }}</p>
+    <p v-if="actionError" class="error">{{ actionError }}</p>
+
     <ul v-if="items.length > 0" class="list">
       <li v-for="note in items" :key="note.id" :class="{ pinned: note.pinned }">
         <span class="body">{{ note.body }}</span>
-        <span v-if="note.pinned" class="badge">PIN</span>
+        <button class="small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
+          {{ note.pinned ? 'ピン解除' : 'ピン' }}
+        </button>
+        <button class="small danger" type="button" :disabled="isPending(note.id)" @click="onDelete(note)">
+          削除
+        </button>
       </li>
     </ul>
     <p v-else class="empty">連絡はありません</p>
@@ -23,17 +107,44 @@ defineProps<{
 .panel {
   border: 1px solid #dcdcdc;
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px;
   background: #fff;
 }
 
 h2 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 1.1rem;
 }
 
+.composer {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  flex: 1;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  background: #f7f7f7;
+  font-size: 14px;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
 .list {
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
   display: grid;
@@ -57,15 +168,24 @@ li.pinned {
   flex: 1;
 }
 
-.badge {
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: #ffcf66;
+.small {
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.danger {
+  color: #b00020;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: #b00020;
+  font-size: 0.86rem;
 }
 
 .empty {
-  margin: 0;
+  margin: 10px 0 0;
   color: #666;
 }
 </style>
