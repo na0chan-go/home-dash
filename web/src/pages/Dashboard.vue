@@ -124,8 +124,7 @@ async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, c
 }
 
 async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
-  const current = dashboard.value
-  if (!current) {
+  if (!dashboard.value) {
     throw new Error('dashboard state not loaded')
   }
 
@@ -152,7 +151,11 @@ async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
     },
     async () => {
       const created = await createNote(kind, body)
-      const target = kind === 'notice' ? current.notes.notice : current.notes.shopping
+      const latest = dashboard.value
+      if (!latest) {
+        return
+      }
+      const target = kind === 'notice' ? latest.notes.notice : latest.notes.shopping
       const idx = target.findIndex((note) => note.id === tempID)
       if (idx >= 0) {
         target[idx] = created
