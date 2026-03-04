@@ -1,0 +1,31 @@
+name: 運用メモ（週次Issue化）
+description: OPS_LOGの内容をIssueへ転記するための短いフォーム
+title: "[Ops] "
+labels:
+  - "area: ops"
+body:
+  - type: textarea
+    id: trouble
+    attributes:
+      label: 困ったこと
+      placeholder: 実運用で困った点を1〜3行で記載してください
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 影響
+      options:
+        - 大
+        - 中
+        - 小
+    validations:
+      required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: 補足（任意）
+      placeholder: 再現条件、対処、メモなど
+    validations:
+      required: false
+

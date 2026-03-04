@@ -253,8 +253,12 @@ curl http://localhost:8080/api/v1/status \
 - オフライン時も UI の枠は開けますが、`/api/v1/*` のデータ更新はできません。
   オンライン復帰後は自動で再取得して通常動作に戻ります。
 
-## 開発ルール
+## 開発/運用
 
-詳細な開発ルールは `AGENT.md` を参照してください。
-アーキテクチャ概要は `docs/ARCHITECTURE.md` に記載しています。
-リリース手順は `docs/RELEASE.md`、変更履歴は `CHANGELOG.md` を参照してください。
+- 開発ルール: `AGENT.md`
+- アーキテクチャ概要: `docs/ARCHITECTURE.md`
+- リリース手順: `docs/RELEASE.md`
+- 変更履歴: `CHANGELOG.md`
+- 運用ログ（日次1分）: `docs/OPS_LOG.md`
+- 週次トリアージ手順: `docs/TRIAGE.md`
+- 週次レビュー手順: `docs/WEEKLY_REVIEW.md`
