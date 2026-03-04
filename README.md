@@ -9,9 +9,9 @@ MVP0では次の3機能に限定しています。
 
 ## 画面イメージ
 
-![HomeDash ダッシュボード（実機スクリーンショット）](docs/screenshots/dashboard.png)
+![HomeDash ダッシュボード画面](docs/screenshots/dashboard.png)
 
-実機（iPad/iPhone）での確認時点のダッシュボード画面です。
+HomeDash のダッシュボード画面イメージです。
 
 ## 前提
 
