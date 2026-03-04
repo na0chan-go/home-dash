@@ -24,10 +24,46 @@ func (r *statusRecorder) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
-func applyMiddlewares(next http.Handler, corsAllowOrigins []string) http.Handler {
-	h := corsMiddleware(next, corsAllowOrigins)
+func applyMiddlewares(next http.Handler, corsAllowOrigins []string, authToken string) http.Handler {
+	h := authTokenMiddleware(next, authToken)
+	h = corsMiddleware(h, corsAllowOrigins)
 	h = requestIDAndAccessLogMiddleware(h)
 	return h
+}
+
+func authTokenMiddleware(next http.Handler, authToken string) http.Handler {
+	if authToken == "" {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isAPIv1Path(r.URL.Path) || r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !isValidBearerToken(r.Header.Get("Authorization"), authToken) {
+			writeError(w, r, http.StatusUnauthorized, errorCodeUnauthorized, "authentication required")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isAPIv1Path(path string) bool {
+	return path == "/api/v1" || strings.HasPrefix(path, "/api/v1/")
+}
+
+func isValidBearerToken(authHeader string, expectedToken string) bool {
+	parts := strings.Fields(authHeader)
+	if len(parts) != 2 {
+		return false
+	}
+	if !strings.EqualFold(parts[0], "Bearer") {
+		return false
+	}
+	return parts[1] == expectedToken
 }
 
 func requestIDAndAccessLogMiddleware(next http.Handler) http.Handler {

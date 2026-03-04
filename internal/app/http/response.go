@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	errorCodeValidation = "VALIDATION_ERROR"
-	errorCodeNotFound   = "NOT_FOUND"
-	errorCodeInternal   = "INTERNAL_ERROR"
-	errorCodeConfig     = "CONFIG_ERROR"
+	errorCodeValidation   = "VALIDATION_ERROR"
+	errorCodeNotFound     = "NOT_FOUND"
+	errorCodeUnauthorized = "UNAUTHORIZED"
+	errorCodeInternal     = "INTERNAL_ERROR"
+	errorCodeConfig       = "CONFIG_ERROR"
 )
 
 type apiErrorDetail struct {

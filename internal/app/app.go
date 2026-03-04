@@ -66,6 +66,7 @@ func New(ctx context.Context) (*App, error) {
 		dashboardUseCase,
 		spaHandler,
 		cfg.CORSAllowOrigins,
+		cfg.AuthToken,
 	)
 	server := &http.Server{
 		Addr:              cfg.AppAddr,

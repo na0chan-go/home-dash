@@ -12,7 +12,7 @@ import (
 func TestErrorFormatIncludesRequestIDAndTokyoTimestamp(t *testing.T) {
 	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "invalid request")
-	}), []string{})
+	}), []string{}, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	rec := httptest.NewRecorder()
@@ -60,7 +60,7 @@ func TestErrorFormatIncludesRequestIDAndTokyoTimestamp(t *testing.T) {
 func TestCORSDisabledByDefault(t *testing.T) {
 	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}), []string{})
+	}), []string{}, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
@@ -75,7 +75,7 @@ func TestCORSDisabledByDefault(t *testing.T) {
 func TestCORSEnabledForConfiguredOrigin(t *testing.T) {
 	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}), []string{"http://localhost:5173"})
+	}), []string{"http://localhost:5173"}, "")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
@@ -93,7 +93,7 @@ func TestCORSEnabledForConfiguredOrigin(t *testing.T) {
 func TestCORSPreflightReturnsNoContent(t *testing.T) {
 	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}), []string{"http://localhost:5173"})
+	}), []string{"http://localhost:5173"}, "")
 
 	req := httptest.NewRequest(http.MethodOptions, "/api/v1/notes", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
@@ -105,5 +105,108 @@ func TestCORSPreflightReturnsNoContent(t *testing.T) {
 	}
 	if rec.Header().Get("X-Request-Id") == "" {
 		t.Fatal("expected X-Request-Id header for preflight request")
+	}
+}
+
+func TestCORSPreflightReturnsNoContentWhenAuthTokenEnabled(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{"http://localhost:5173"}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/notes", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", rec.Code)
+	}
+}
+
+func TestAuthTokenDisabledAllowsAPIRequest(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestAuthTokenRejectsMissingBearerToken(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
+	}
+
+	var payload struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+		RequestID string `json:"requestId"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to decode json: %v", err)
+	}
+	if payload.Error.Code != errorCodeUnauthorized {
+		t.Fatalf("expected code %s, got %s", errorCodeUnauthorized, payload.Error.Code)
+	}
+	if payload.RequestID == "" {
+		t.Fatal("requestId is empty")
+	}
+}
+
+func TestAuthTokenRejectsInvalidToken(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/notes", nil)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
+	}
+}
+
+func TestAuthTokenAllowsValidBearerToken(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/notes", nil)
+	req.Header.Set("Authorization", "Bearer secret-token")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestAuthTokenSkipsNonAPIPath(t *testing.T) {
+	h := applyMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}), []string{}, "secret-token")
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
 }
