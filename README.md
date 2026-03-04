@@ -319,6 +319,17 @@ curl http://localhost:8080/api/v1/status \
 - オフライン時も UI の枠は開けますが、`/api/v1/*` のデータ更新はできません。
   オンライン復帰後は自動で再取得して通常動作に戻ります。
 
+## Development
+
+### CI
+
+GitHub Actions で以下をチェックします。
+
+- Go build
+- Go test
+- Vue build
+- Docker build
+
 ## 開発/運用
 
 - 開発ルール: `AGENT.md`

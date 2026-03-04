@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  go:
+    name: Go Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Go Test
+        run: go test ./...
+
+      - name: Go Build
+        run: go build ./...
+
+  frontend:
+    name: Frontend Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: NPM Install
+        run: npm install
+
+      - name: Vue Build
+        run: npm run build
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker Build
+        run: docker build -f docker/Dockerfile .
