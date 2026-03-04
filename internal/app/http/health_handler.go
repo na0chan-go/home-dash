@@ -16,13 +16,13 @@ func NewHealthHandler(useCase *health.GetHealthUseCase) *HealthHandler {
 
 func (h *HealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "method not allowed")
 		return
 	}
 
 	result, err := h.useCase.Execute(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeInternalError(w, r, errorCodeInternal, err)
 		return
 	}
 

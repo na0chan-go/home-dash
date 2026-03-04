@@ -16,13 +16,17 @@ func NewDashboardHandler(useCase *usedashboard.GetDashboardUseCase) *DashboardHa
 
 func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "method not allowed")
 		return
 	}
 
 	result, err := h.useCase.Execute(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		if isConfigError(err) {
+			writeInternalError(w, r, errorCodeConfig, err)
+			return
+		}
+		writeInternalError(w, r, errorCodeInternal, err)
 		return
 	}
 

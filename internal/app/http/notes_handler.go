@@ -60,14 +60,14 @@ func (h *NotesHandler) HandleNotes(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		h.create(w, r)
 	default:
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "method not allowed")
 	}
 }
 
 func (h *NotesHandler) HandleByID(w http.ResponseWriter, r *http.Request) {
 	id, action, ok := parseIDPath(r.URL.Path)
 	if !ok {
-		writeError(w, http.StatusNotFound, "not found")
+		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *NotesHandler) HandleByID(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodPatch && action == "done":
 		h.setDone(w, r, id)
 	default:
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "method not allowed")
 	}
 }
 
@@ -88,7 +88,7 @@ func (h *NotesHandler) list(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("limit"); v != "" {
 		parsed, err := strconv.Atoi(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "limit must be an integer")
+			writeError(w, r, http.StatusBadRequest, errorCodeValidation, "limit must be an integer")
 			return
 		}
 		limit = parsed
@@ -99,7 +99,7 @@ func (h *NotesHandler) list(w http.ResponseWriter, r *http.Request) {
 		Limit: limit,
 	})
 	if err != nil {
-		h.handleUseCaseError(w, err)
+		h.handleUseCaseError(w, r, err)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *NotesHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h *NotesHandler) create(w http.ResponseWriter, r *http.Request) {
 	var req createNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "invalid request body")
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *NotesHandler) create(w http.ResponseWriter, r *http.Request) {
 		Done:   req.Done,
 	})
 	if err != nil {
-		h.handleUseCaseError(w, err)
+		h.handleUseCaseError(w, r, err)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *NotesHandler) create(w http.ResponseWriter, r *http.Request) {
 
 func (h *NotesHandler) delete(w http.ResponseWriter, r *http.Request, id int64) {
 	if err := h.deleteUseCase.Execute(r.Context(), id); err != nil {
-		h.handleUseCaseError(w, err)
+		h.handleUseCaseError(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, deleteNoteResponse{Deleted: true})
@@ -138,17 +138,17 @@ func (h *NotesHandler) delete(w http.ResponseWriter, r *http.Request, id int64) 
 func (h *NotesHandler) setPin(w http.ResponseWriter, r *http.Request, id int64) {
 	var req setPinnedRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "invalid request body")
 		return
 	}
 	if req.Pinned == nil {
-		writeError(w, http.StatusBadRequest, "pinned is required")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "pinned is required")
 		return
 	}
 
 	result, err := h.setPinUseCase.Execute(r.Context(), usenotes.SetPinInput{ID: id, Pinned: *req.Pinned})
 	if err != nil {
-		h.handleUseCaseError(w, err)
+		h.handleUseCaseError(w, r, err)
 		return
 	}
 
@@ -158,33 +158,33 @@ func (h *NotesHandler) setPin(w http.ResponseWriter, r *http.Request, id int64) 
 func (h *NotesHandler) setDone(w http.ResponseWriter, r *http.Request, id int64) {
 	var req setDoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "invalid request body")
 		return
 	}
 	if req.Done == nil {
-		writeError(w, http.StatusBadRequest, "done is required")
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "done is required")
 		return
 	}
 
 	result, err := h.setDoneUseCase.Execute(r.Context(), usenotes.SetDoneInput{ID: id, Done: *req.Done})
 	if err != nil {
-		h.handleUseCaseError(w, err)
+		h.handleUseCaseError(w, r, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, result)
 }
 
-func (h *NotesHandler) handleUseCaseError(w http.ResponseWriter, err error) {
+func (h *NotesHandler) handleUseCaseError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, usenotes.ErrNoteNotFound) {
-		writeError(w, http.StatusNotFound, err.Error())
+		writeError(w, r, http.StatusNotFound, errorCodeNotFound, err.Error())
 		return
 	}
 	if usenotes.IsUserError(err) {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, err.Error())
 		return
 	}
-	writeError(w, http.StatusInternalServerError, "internal server error")
+	writeInternalError(w, r, errorCodeInternal, err)
 }
 
 func parseIDPath(path string) (int64, string, bool) {
