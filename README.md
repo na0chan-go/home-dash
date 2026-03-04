@@ -68,6 +68,66 @@ docker compose up --build
 docker compose down
 ```
 
+## 実機確認手順（Mac + iPad/iPhone）
+
+1. 最新コードを取得
+
+```bash
+git checkout main
+git pull
+```
+
+2. バックグラウンドで起動
+
+```bash
+docker compose up --build -d
+```
+
+3. PC側で疎通確認
+
+```bash
+curl http://localhost:8080/api/v1/health
+```
+
+4. MacのIP確認（同一Wi-Fi）
+
+```bash
+ipconfig getifaddr en0
+```
+
+`en0` で出ない場合は `en1` も試してください。
+
+5. iPad/iPhoneで確認
+
+- Safariで `http://<MacのIP>:8080` を開く
+- PWA確認時は「共有」→「ホーム画面に追加」
+
+6. 最低限の動作チェック
+
+- 連絡メモ: 追加 / ピン / 削除
+- 買い物メモ: 追加 / 完了切替 / 削除
+- ゴミ: 今日・明日表示
+- 5分放置でスクリーンセーバ、タップで復帰
+- `22:00-06:00` で夜間暗転
+
+7. 終了
+
+```bash
+docker compose down
+```
+
+### 実機確認時の補足
+
+- `AUTH_TOKEN` を設定している場合、`/api/v1/*` は Bearer 認証が必須です
+- iPad/iPhone と Mac が同じWi-Fiに接続されていることを確認してください
+- `docker compose ps` で `app` が `Up` になっていることを確認してください
+- Macのファイアウォール設定で `8080` へのアクセスが遮断されていないか確認してください
+- 不具合時はログ確認:
+
+```bash
+docker compose logs -f app
+```
+
 ## iPadホーム画面追加（PWA）
 
 1. iPad の Safari で `http://<HomeDashサーバーIP>:8080` を開く
