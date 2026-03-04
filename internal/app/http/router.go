@@ -20,6 +20,7 @@ func NewRouter(
 	garbageTomorrowUseCase *usegarbage.GetTomorrowUseCase,
 	garbageSummaryUseCase *usegarbage.GetSummaryUseCase,
 	dashboardUseCase *usedashboard.GetDashboardUseCase,
+	corsAllowOrigins []string,
 ) http.Handler {
 	mux := http.NewServeMux()
 	healthHandler := NewHealthHandler(healthUseCase)
@@ -34,5 +35,12 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/garbage/tomorrow", garbageHandler.Tomorrow)
 	mux.HandleFunc("/api/v1/garbage/summary", garbageHandler.Summary)
 	mux.HandleFunc("/api/v1/dashboard", dashboardHandler.Get)
-	return mux
+	mux.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
+	})
+	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
+	})
+
+	return applyMiddlewares(mux, corsAllowOrigins)
 }

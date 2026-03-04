@@ -63,6 +63,7 @@ func New(ctx context.Context) (*App, error) {
 		garbageTomorrowUseCase,
 		garbageSummaryUseCase,
 		dashboardUseCase,
+		cfg.CORSAllowOrigins,
 	)
 	server := &http.Server{
 		Addr:              cfg.AppAddr,
