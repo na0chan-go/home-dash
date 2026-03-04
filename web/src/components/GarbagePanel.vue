@@ -8,52 +8,44 @@ defineProps<{
 </script>
 
 <template>
-  <section class="panel">
-    <h2>ゴミ</h2>
-    <div class="block">
-      <h3>今日</h3>
-      <p class="date">{{ today.date }} ({{ today.weekday }})</p>
-      <p class="label">{{ today.label }}</p>
+  <section class="hd-panel garbage-panel">
+    <h2 class="hd-panel-title">ゴミ</h2>
+    <div class="garbage-block">
+      <h3 class="garbage-subtitle">今日</h3>
+      <p class="garbage-date">{{ today.date }} ({{ today.weekday }})</p>
+      <p class="garbage-label">{{ today.label }}</p>
     </div>
-    <div class="block">
-      <h3>明日</h3>
-      <p class="date">{{ tomorrow.date }} ({{ tomorrow.weekday }})</p>
-      <p class="label">{{ tomorrow.label }}</p>
+    <div class="garbage-block">
+      <h3 class="garbage-subtitle">明日</h3>
+      <p class="garbage-date">{{ tomorrow.date }} ({{ tomorrow.weekday }})</p>
+      <p class="garbage-label">{{ tomorrow.label }}</p>
     </div>
   </section>
 </template>
 
 <style scoped>
-.panel {
-  border: 1px solid #dcdcdc;
-  border-radius: 10px;
+.garbage-panel {
   padding: 16px;
-  background: #fff;
 }
 
-h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
-}
-
-.block + .block {
+.garbage-block + .garbage-block {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px dashed #ddd;
 }
 
-h3 {
+.garbage-subtitle {
   margin: 0 0 6px;
   font-size: 1rem;
 }
 
-.date {
+.garbage-date {
   margin: 0;
   color: #666;
   font-size: 0.9rem;
 }
 
-.label {
+.garbage-label {
   margin: 4px 0 0;
   font-weight: 600;
 }

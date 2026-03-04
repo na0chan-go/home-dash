@@ -84,42 +84,48 @@ async function confirmDelete(): Promise<void> {
 </script>
 
 <template>
-  <section class="panel">
-    <h2>連絡</h2>
+  <section class="hd-panel notice-board">
+    <h2 class="hd-panel-title">連絡</h2>
 
-    <form class="composer" @submit.prevent="submit">
+    <form class="hd-composer" @submit.prevent="submit">
       <input
         ref="inputRef"
         v-model="body"
+        class="hd-input-text"
         type="text"
         placeholder="連絡を入力"
         maxlength="200"
         autocomplete="off"
       />
-      <button type="submit">追加</button>
+      <button type="submit" class="hd-btn hd-btn-primary">追加</button>
     </form>
-    <p v-if="validationError" class="error">{{ validationError }}</p>
-    <p v-if="actionError" class="error">{{ actionError }}</p>
+    <p v-if="validationError" class="hd-error">{{ validationError }}</p>
+    <p v-if="actionError" class="hd-error">{{ actionError }}</p>
 
-    <ul v-if="items.length > 0" class="list">
-      <li v-for="note in items" :key="note.id" :class="{ pinned: note.pinned }">
-        <span class="body">{{ note.body }}</span>
-        <button class="small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
+    <ul v-if="items.length > 0" class="hd-list">
+      <li v-for="note in items" :key="note.id" :class="['hd-list-item', { 'is-pinned': note.pinned }]">
+        <span class="hd-list-body">{{ note.body }}</span>
+        <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
           {{ note.pinned ? 'ピン解除' : 'ピン' }}
         </button>
-        <button class="small danger" type="button" :disabled="isPending(note.id)" @click="requestDelete(note)">
+        <button
+          class="hd-btn hd-btn-small hd-btn-danger"
+          type="button"
+          :disabled="isPending(note.id)"
+          @click="requestDelete(note)"
+        >
           削除
         </button>
       </li>
     </ul>
-    <p v-else class="empty">連絡はありません</p>
+    <p v-else class="hd-empty">連絡はありません</p>
 
-    <div v-if="deleteTarget" class="confirm-overlay" role="dialog" aria-modal="true" aria-label="削除確認">
-      <div class="confirm-modal">
+    <div v-if="deleteTarget" class="hd-confirm-overlay" role="dialog" aria-modal="true" aria-label="削除確認">
+      <div class="hd-confirm-modal">
         <p>削除しますか？</p>
-        <div class="confirm-actions">
-          <button type="button" class="small" @click="cancelDelete">キャンセル</button>
-          <button type="button" class="small danger" @click="confirmDelete">削除</button>
+        <div class="hd-confirm-actions">
+          <button type="button" class="hd-btn hd-btn-small" @click="cancelDelete">キャンセル</button>
+          <button type="button" class="hd-btn hd-btn-small hd-btn-danger" @click="confirmDelete">削除</button>
         </div>
       </div>
     </div>
@@ -127,124 +133,7 @@ async function confirmDelete(): Promise<void> {
 </template>
 
 <style scoped>
-.panel {
-  border: 1px solid #dcdcdc;
-  border-radius: 10px;
-  padding: 14px;
-  background: #fff;
-}
-
-h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
-}
-
-.composer {
-  display: flex;
-  gap: 8px;
-}
-
-input {
-  flex: 1;
-  height: 44px;
-  padding: 0 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-button {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid #bbb;
-  border-radius: 8px;
-  background: #f7f7f7;
-  color: #1f2937;
-  font-size: 14px;
-}
-
-.composer button {
-  border-color: #1d4ed8;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 700;
-}
-
-button:disabled {
-  opacity: 0.5;
-}
-
-.list {
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 8px;
-}
-
-li {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
-  border-radius: 8px;
-  background: #f7f7f7;
-}
-
-li.pinned {
+.is-pinned {
   background: #fff3cd;
-}
-
-.body {
-  flex: 1;
-}
-
-.small {
-  min-height: 38px;
-  padding: 0 10px;
-  font-size: 13px;
-}
-
-.danger {
-  color: #b00020;
-}
-
-.error {
-  margin: 8px 0 0;
-  color: #b00020;
-  font-size: 0.86rem;
-}
-
-.empty {
-  margin: 10px 0 0;
-  color: #666;
-}
-
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  background: rgba(0, 0, 0, 0.4);
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-
-.confirm-modal {
-  width: min(360px, 100%);
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
-  padding: 14px;
-}
-
-.confirm-modal p {
-  margin: 0 0 12px;
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 </style>
