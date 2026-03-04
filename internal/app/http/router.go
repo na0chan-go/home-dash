@@ -20,6 +20,7 @@ func NewRouter(
 	garbageTomorrowUseCase *usegarbage.GetTomorrowUseCase,
 	garbageSummaryUseCase *usegarbage.GetSummaryUseCase,
 	dashboardUseCase *usedashboard.GetDashboardUseCase,
+	spaHandler *SPAHandler,
 	corsAllowOrigins []string,
 ) http.Handler {
 	mux := http.NewServeMux()
@@ -41,6 +42,8 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
 	})
+
+	mux.HandleFunc("/", spaHandler.Serve)
 
 	return applyMiddlewares(mux, corsAllowOrigins)
 }

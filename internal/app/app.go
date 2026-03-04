@@ -51,6 +51,7 @@ func New(ctx context.Context) (*App, error) {
 	garbageTomorrowUseCase := usegarbage.NewGetTomorrowUseCase(garbageProvider, clock)
 	garbageSummaryUseCase := usegarbage.NewGetSummaryUseCase(garbageProvider, clock)
 	dashboardUseCase := usedashboard.NewGetDashboardUseCase(notesRepo, garbageProvider, clock)
+	spaHandler := httpapi.NewSPAHandler(cfg.WebDistPath)
 
 	router := httpapi.NewRouter(
 		healthUseCase,
@@ -63,6 +64,7 @@ func New(ctx context.Context) (*App, error) {
 		garbageTomorrowUseCase,
 		garbageSummaryUseCase,
 		dashboardUseCase,
+		spaHandler,
 		cfg.CORSAllowOrigins,
 	)
 	server := &http.Server{
