@@ -32,7 +32,7 @@ defineProps<{
   padding: 12px;
   border-radius: 12px;
   border: 1px solid #dce5f4;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%);
+  background: #f9fbff;
 }
 
 .garbage-block + .garbage-block {

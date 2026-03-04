@@ -135,7 +135,7 @@ async function confirmDelete(): Promise<void> {
 <style scoped>
 .is-pinned {
   border-color: #ead59a;
-  background: linear-gradient(180deg, #fff8df 0%, #fff1c8 100%);
+  background: #fff4d2;
   box-shadow: inset 4px 0 0 #e6bb40;
 }
 </style>

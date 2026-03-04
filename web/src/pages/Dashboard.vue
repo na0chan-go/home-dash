@@ -539,7 +539,7 @@ onUnmounted(() => {
     <header class="header">
       <div class="brand">
         <h1 class="title">HomeDash</h1>
-        <p class="tagline">家庭ホワイトボード</p>
+        <p class="tagline">Daily Hub</p>
       </div>
       <div class="status">
         <span class="status-chip">更新: {{ lastUpdatedLabel }}</span>
