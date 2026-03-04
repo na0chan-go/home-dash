@@ -9,6 +9,7 @@ type Config struct {
 	AppAddr             string
 	DBPath              string
 	GarbageSchedulePath string
+	WebDistPath         string
 	CORSAllowOrigins    []string
 }
 
@@ -17,6 +18,7 @@ func LoadFromEnv() Config {
 		AppAddr:             getEnv("APP_ADDR", ":8080"),
 		DBPath:              getEnv("DB_PATH", "/data/app.db"),
 		GarbageSchedulePath: getEnv("GARBAGE_SCHEDULE_PATH", "config/garbage_schedule.json"),
+		WebDistPath:         getEnv("WEB_DIST_PATH", "web/dist"),
 		CORSAllowOrigins:    parseCSVEnv("CORS_ALLOW_ORIGINS"),
 	}
 }

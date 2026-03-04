@@ -30,3 +30,7 @@ data/*
 # Temporary files
 tmp/
 *.tmp
+
+# Frontend
+web/node_modules/
+web/dist/
