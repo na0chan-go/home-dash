@@ -26,12 +26,21 @@ docker compose up --build
 
 - API: `http://localhost:8080`
 - ヘルスチェック: `http://localhost:8080/api/v1/health`
+- 画面: `http://localhost:8080`
 
 停止:
 
 ```bash
 docker compose down
 ```
+
+## iPadホーム画面追加（PWA）
+
+1. iPad の Safari で `http://<HomeDashサーバーIP>:8080` を開く
+2. 共有ボタンを押して「ホーム画面に追加」を選択
+3. 以後はホーム画面の `HomeDash` アイコンから起動
+
+ホーム画面から起動すると standalone 表示（アプリ風表示）になります。
 
 ## 初期設定
 
@@ -115,6 +124,8 @@ curl -X POST http://localhost:8080/api/v1/notes \
 - `.env` はコミットしないでください。
 - 祝日・年末年始などの特例は MVP0 対象外です（将来対応予定）。
 - MVP0範囲外（天気/室温/株価/献立/在庫/IoT等）は実装しません。
+- オフライン時も UI の枠は開けますが、`/api/v1/*` のデータ更新はできません。
+  オンライン復帰後は自動で再取得して通常動作に戻ります。
 
 ## 開発ルール
 
