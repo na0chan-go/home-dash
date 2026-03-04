@@ -1,6 +1,8 @@
+export type NoteKind = 'notice' | 'shopping'
+
 export type Note = {
   id: number
-  kind: 'notice' | 'shopping'
+  kind: NoteKind
   body: string
   pinned: boolean
   done: boolean
@@ -27,18 +29,93 @@ export type DashboardResponse = {
   }
 }
 
-export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardResponse> {
-  const res = await fetch('/api/v1/dashboard', {
-    method: 'GET',
+type APIErrorBody = {
+  error?: {
+    code?: string
+    message?: string
+  }
+  requestId?: string
+  timestamp?: string
+}
+
+export class APIError extends Error {
+  status: number
+  code?: string
+  requestId?: string
+  timestamp?: string
+
+  constructor(status: number, message: string, code?: string, requestId?: string, timestamp?: string) {
+    super(message)
+    this.name = 'APIError'
+    this.status = status
+    this.code = code
+    this.requestId = requestId
+    this.timestamp = timestamp
+  }
+}
+
+async function requestJSON<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
     headers: {
-      'Content-Type': 'application/json'
-    },
-    signal
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {})
+    }
   })
 
   if (!res.ok) {
-    throw new Error(`failed to fetch dashboard: ${res.status}`)
+    let body: APIErrorBody | undefined
+    try {
+      body = (await res.json()) as APIErrorBody
+    } catch {
+      body = undefined
+    }
+    throw new APIError(
+      res.status,
+      body?.error?.message ?? `request failed: ${res.status}`,
+      body?.error?.code,
+      body?.requestId,
+      body?.timestamp
+    )
   }
 
-  return (await res.json()) as DashboardResponse
+  if (res.status === 204) {
+    return undefined as T
+  }
+
+  return (await res.json()) as T
+}
+
+export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardResponse> {
+  return requestJSON<DashboardResponse>('/api/v1/dashboard', {
+    method: 'GET',
+    signal
+  })
+}
+
+export async function createNote(kind: NoteKind, body: string): Promise<Note> {
+  return requestJSON<Note>('/api/v1/notes', {
+    method: 'POST',
+    body: JSON.stringify({ kind, body })
+  })
+}
+
+export async function updateNotePin(id: number, pinned: boolean): Promise<Note> {
+  return requestJSON<Note>(`/api/v1/notes/${id}/pin`, {
+    method: 'PATCH',
+    body: JSON.stringify({ pinned })
+  })
+}
+
+export async function updateNoteDone(id: number, done: boolean): Promise<Note> {
+  return requestJSON<Note>(`/api/v1/notes/${id}/done`, {
+    method: 'PATCH',
+    body: JSON.stringify({ done })
+  })
+}
+
+export async function deleteNote(id: number): Promise<{ deleted: boolean }> {
+  return requestJSON<{ deleted: boolean }>(`/api/v1/notes/${id}`, {
+    method: 'DELETE'
+  })
 }
