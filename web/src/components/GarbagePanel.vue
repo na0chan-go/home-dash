@@ -28,25 +28,34 @@ defineProps<{
   padding: 16px;
 }
 
+.garbage-block {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #dce5f4;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%);
+}
+
 .garbage-block + .garbage-block {
   margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed #ddd;
 }
 
 .garbage-subtitle {
   margin: 0 0 6px;
-  font-size: 1rem;
+  color: #2e3a57;
+  font-size: 1.04rem;
 }
 
 .garbage-date {
   margin: 0;
-  color: #666;
+  color: #65748f;
   font-size: 0.9rem;
 }
 
 .garbage-label {
-  margin: 4px 0 0;
-  font-weight: 600;
+  margin: 8px 0 0;
+  color: #1e2a45;
+  font-size: 1.32rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 </style>

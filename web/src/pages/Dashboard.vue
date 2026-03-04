@@ -537,16 +537,19 @@ onUnmounted(() => {
 <template>
   <main class="page">
     <header class="header">
-      <h1>HomeDash</h1>
+      <div class="brand">
+        <h1 class="title">HomeDash</h1>
+        <p class="tagline">家庭ホワイトボード</p>
+      </div>
       <div class="status">
-        <span>更新: {{ lastUpdatedLabel }}</span>
-        <span v-if="refreshFailed" class="status-error">更新失敗</span>
-        <span v-if="isOffline" class="status-offline">オフライン</span>
+        <span class="status-chip">更新: {{ lastUpdatedLabel }}</span>
+        <span v-if="refreshFailed" class="status-chip status-error">更新失敗</span>
+        <span v-if="isOffline" class="status-chip status-offline">オフライン</span>
       </div>
     </header>
 
-    <p v-if="loading">読み込み中...</p>
-    <p v-else-if="!dashboard && fatalError">{{ fatalError }}</p>
+    <p v-if="loading" class="page-message">読み込み中...</p>
+    <p v-else-if="!dashboard && fatalError" class="page-message page-message-error">{{ fatalError }}</p>
 
     <p v-if="operationError" class="operation-error">{{ operationError }}</p>
 
@@ -587,61 +590,137 @@ onUnmounted(() => {
 
 <style scoped>
 .page {
-  max-width: 1200px;
+  position: relative;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 20px;
+}
+
+.page::before,
+.page::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(42px);
+}
+
+.page::before {
+  width: 320px;
+  height: 180px;
+  top: -36px;
+  left: -40px;
+  background: rgba(106, 146, 255, 0.24);
+}
+
+.page::after {
+  width: 260px;
+  height: 160px;
+  top: -18px;
+  right: 6px;
+  background: rgba(255, 186, 133, 0.2);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-h1 {
+.brand {
+  display: grid;
+  gap: 4px;
+}
+
+.title {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: clamp(2rem, 3.3vw, 2.6rem);
+  letter-spacing: 0.01em;
+}
+
+.tagline {
+  margin: 0;
+  color: #68738a;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .status {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
-  color: #666;
-  font-size: 0.86rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #d7e1f3;
+  background: rgba(255, 255, 255, 0.85);
+  color: #4f5f7f;
+  font-size: 0.84rem;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(23, 43, 81, 0.08);
 }
 
 .status-error {
-  color: #b00020;
-  font-weight: 700;
+  border-color: #efc2ca;
+  background: #fff1f3;
+  color: #9e2632;
 }
 
 .status-offline {
-  color: #0b5fa8;
+  border-color: #c5dbf6;
+  background: #edf6ff;
+  color: #1f5f95;
+}
+
+.page-message {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #d6dff0;
+  background: rgba(255, 255, 255, 0.8);
+  color: #51617f;
+  font-size: 0.92rem;
   font-weight: 700;
+}
+
+.page-message-error {
+  border-color: #efc2ca;
+  background: #fff4f6;
+  color: #8c1d28;
 }
 
 .operation-error {
   margin: 0 0 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #ffe8e8;
-  color: #7a0000;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid #efc1c8;
+  background: linear-gradient(180deg, #fff5f6 0%, #ffecee 100%);
+  color: #8b1f2b;
   font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(164, 40, 51, 0.08);
 }
 
 .grid {
   display: grid;
-  gap: 12px;
+  align-items: start;
+  gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .night-dim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.36);
+  background: rgba(5, 9, 20, 0.38);
   pointer-events: none;
   z-index: 30;
 }
@@ -681,6 +760,10 @@ h1 {
   .header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .status {
+    justify-content: flex-start;
   }
 
   .grid {
