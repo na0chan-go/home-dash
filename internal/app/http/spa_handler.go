@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -21,7 +22,7 @@ func (h *SPAHandler) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.HasPrefix(r.URL.Path, "/api/v1/") || r.URL.Path == "/api/v1" {
+	if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api" {
 		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
 		return
 	}
@@ -40,6 +41,10 @@ func (h *SPAHandler) Serve(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, candidate)
 			return
 		}
+		if isStaticAssetRequest(requestedPath) {
+			writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
+			return
+		}
 	}
 
 	indexPath := filepath.Join(h.distDir, "index.html")
@@ -48,4 +53,8 @@ func (h *SPAHandler) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, indexPath)
+}
+
+func isStaticAssetRequest(requestedPath string) bool {
+	return path.Ext(requestedPath) != ""
 }
