@@ -172,7 +172,15 @@ button {
   border: 1px solid #bbb;
   border-radius: 8px;
   background: #f7f7f7;
+  color: #1f2937;
   font-size: 14px;
+}
+
+.composer button {
+  border-color: #1d4ed8;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
 }
 
 button:disabled {
