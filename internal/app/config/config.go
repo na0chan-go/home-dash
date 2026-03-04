@@ -2,7 +2,9 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -12,6 +14,9 @@ type Config struct {
 	WebDistPath         string
 	CORSAllowOrigins    []string
 	AuthToken           string
+	BackupDir           string
+	BackupKeep          int
+	BackupInterval      time.Duration
 }
 
 func LoadFromEnv() Config {
@@ -22,6 +27,9 @@ func LoadFromEnv() Config {
 		WebDistPath:         getEnv("WEB_DIST_PATH", "web/dist"),
 		CORSAllowOrigins:    parseCSVEnv("CORS_ALLOW_ORIGINS"),
 		AuthToken:           strings.TrimSpace(os.Getenv("AUTH_TOKEN")),
+		BackupDir:           getEnv("BACKUP_DIR", "/data/backups"),
+		BackupKeep:          parsePositiveIntEnv("BACKUP_KEEP", 30),
+		BackupInterval:      parseDurationEnv("BACKUP_INTERVAL", 24*time.Hour),
 	}
 }
 
@@ -47,4 +55,28 @@ func parseCSVEnv(key string) []string {
 		}
 	}
 	return out
+}
+
+func parsePositiveIntEnv(key string, defaultValue int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return defaultValue
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 1 {
+		return defaultValue
+	}
+	return v
+}
+
+func parseDurationEnv(key string, defaultValue time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return defaultValue
+	}
+	v, err := time.ParseDuration(raw)
+	if err != nil || v <= 0 {
+		return defaultValue
+	}
+	return v
 }

@@ -12,6 +12,7 @@ import (
 	infragarbage "github.com/na0chan-go/home-dash/internal/infra/garbage"
 	infranotes "github.com/na0chan-go/home-dash/internal/infra/notes"
 	"github.com/na0chan-go/home-dash/internal/infra/system"
+	usebackup "github.com/na0chan-go/home-dash/internal/usecase/backup"
 	usedashboard "github.com/na0chan-go/home-dash/internal/usecase/dashboard"
 	usegarbage "github.com/na0chan-go/home-dash/internal/usecase/garbage"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
@@ -19,8 +20,9 @@ import (
 )
 
 type App struct {
-	server *http.Server
-	db     *sql.DB
+	server          *http.Server
+	db              *sql.DB
+	backupScheduler *backupScheduler
 }
 
 func New(ctx context.Context) (*App, error) {
@@ -51,7 +53,11 @@ func New(ctx context.Context) (*App, error) {
 	garbageTomorrowUseCase := usegarbage.NewGetTomorrowUseCase(garbageProvider, clock)
 	garbageSummaryUseCase := usegarbage.NewGetSummaryUseCase(garbageProvider, clock)
 	dashboardUseCase := usedashboard.NewGetDashboardUseCase(notesRepo, garbageProvider, clock)
+	backupManager := db.NewSQLiteBackupManager(sqliteDB)
+	backupUseCase := usebackup.NewRunBackupUseCase(backupManager, cfg.BackupDir, cfg.BackupKeep)
+	adminBackupHandler := httpapi.NewAdminBackupHandler(backupUseCase)
 	spaHandler := httpapi.NewSPAHandler(cfg.WebDistPath)
+	scheduler := newBackupScheduler(cfg.BackupInterval, backupUseCase.Execute)
 
 	router := httpapi.NewRouter(
 		healthUseCase,
@@ -64,6 +70,7 @@ func New(ctx context.Context) (*App, error) {
 		garbageTomorrowUseCase,
 		garbageSummaryUseCase,
 		dashboardUseCase,
+		adminBackupHandler,
 		spaHandler,
 		cfg.CORSAllowOrigins,
 		cfg.AuthToken,
@@ -74,10 +81,13 @@ func New(ctx context.Context) (*App, error) {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	return &App{server: server, db: sqliteDB}, nil
+	return &App{server: server, db: sqliteDB, backupScheduler: scheduler}, nil
 }
 
 func (a *App) Run() error {
+	if a.backupScheduler != nil {
+		a.backupScheduler.Start()
+	}
 	return a.server.ListenAndServe()
 }
 
@@ -86,5 +96,13 @@ func (a *App) Shutdown(ctx context.Context) error {
 		_ = a.db.Close()
 		return err
 	}
+
+	if a.backupScheduler != nil {
+		if err := a.backupScheduler.Shutdown(ctx); err != nil {
+			_ = a.db.Close()
+			return err
+		}
+	}
+
 	return a.db.Close()
 }

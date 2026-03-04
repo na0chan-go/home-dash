@@ -32,12 +32,26 @@ func applyMiddlewares(next http.Handler, corsAllowOrigins []string, authToken st
 }
 
 func authTokenMiddleware(next http.Handler, authToken string) http.Handler {
-	if authToken == "" {
-		return next
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !isAPIv1Path(r.URL.Path) || r.Method == http.MethodOptions {
+		if r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if isAdminAPIPath(r.URL.Path) {
+			if authToken == "" {
+				writeError(w, r, http.StatusForbidden, errorCodeForbidden, "admin endpoint requires AUTH_TOKEN")
+				return
+			}
+			if !isValidBearerToken(r.Header.Get("Authorization"), authToken) {
+				writeError(w, r, http.StatusUnauthorized, errorCodeUnauthorized, "authentication required")
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if authToken == "" || !isAPIv1Path(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -53,6 +67,10 @@ func authTokenMiddleware(next http.Handler, authToken string) http.Handler {
 
 func isAPIv1Path(path string) bool {
 	return path == "/api/v1" || strings.HasPrefix(path, "/api/v1/")
+}
+
+func isAdminAPIPath(path string) bool {
+	return path == "/api/v1/admin" || strings.HasPrefix(path, "/api/v1/admin/")
 }
 
 func isValidBearerToken(authHeader string, expectedToken string) bool {

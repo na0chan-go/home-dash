@@ -20,6 +20,7 @@ func NewRouter(
 	garbageTomorrowUseCase *usegarbage.GetTomorrowUseCase,
 	garbageSummaryUseCase *usegarbage.GetSummaryUseCase,
 	dashboardUseCase *usedashboard.GetDashboardUseCase,
+	adminBackupHandler *AdminBackupHandler,
 	spaHandler *SPAHandler,
 	corsAllowOrigins []string,
 	authToken string,
@@ -37,6 +38,7 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/garbage/tomorrow", garbageHandler.Tomorrow)
 	mux.HandleFunc("/api/v1/garbage/summary", garbageHandler.Summary)
 	mux.HandleFunc("/api/v1/dashboard", dashboardHandler.Get)
+	mux.HandleFunc("/api/v1/admin/backup", adminBackupHandler.Create)
 	mux.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")
 	})
