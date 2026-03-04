@@ -28,6 +28,7 @@ COPY --from=go-builder /app/config /app/config
 COPY --from=go-builder /app/web/dist /app/web/dist
 
 ENV APP_ADDR=:8080
+ENV APP_VERSION=unknown
 ENV DB_PATH=/data/app.db
 ENV GARBAGE_SCHEDULE_PATH=config/garbage_schedule.json
 ENV WEB_DIST_PATH=web/dist

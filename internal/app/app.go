@@ -17,6 +17,7 @@ import (
 	usegarbage "github.com/na0chan-go/home-dash/internal/usecase/garbage"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
 	usenotes "github.com/na0chan-go/home-dash/internal/usecase/notes"
+	usestatus "github.com/na0chan-go/home-dash/internal/usecase/status"
 )
 
 type App struct {
@@ -46,6 +47,7 @@ func New(ctx context.Context) (*App, error) {
 	setDoneUseCase := usenotes.NewSetDoneUseCase(notesRepo)
 
 	clock := system.NewClock()
+	startedAt := clock.NowUTC()
 	healthUseCase := health.NewGetHealthUseCase(clock)
 
 	garbageProvider := infragarbage.NewJSONScheduleProvider(cfg.GarbageSchedulePath)
@@ -55,6 +57,18 @@ func New(ctx context.Context) (*App, error) {
 	dashboardUseCase := usedashboard.NewGetDashboardUseCase(notesRepo, garbageProvider, clock)
 	backupManager := db.NewSQLiteBackupManager(sqliteDB)
 	backupUseCase := usebackup.NewRunBackupUseCase(backupManager, cfg.BackupDir, cfg.BackupKeep)
+	dbChecker := db.NewSQLiteHealthChecker(sqliteDB)
+	backupStatusReader := db.NewFileBackupStatusReader(cfg.BackupDir)
+	statusUseCase := usestatus.NewGetStatusUseCase(
+		clock,
+		dbChecker,
+		garbageProvider,
+		backupStatusReader,
+		cfg.DBPath,
+		cfg.AuthToken != "",
+		cfg.AppVersion,
+		startedAt,
+	)
 	adminBackupHandler := httpapi.NewAdminBackupHandler(backupUseCase)
 	spaHandler := httpapi.NewSPAHandler(cfg.WebDistPath)
 	scheduler := newBackupScheduler(cfg.BackupInterval, backupUseCase.Execute)
@@ -70,6 +84,7 @@ func New(ctx context.Context) (*App, error) {
 		garbageTomorrowUseCase,
 		garbageSummaryUseCase,
 		dashboardUseCase,
+		statusUseCase,
 		adminBackupHandler,
 		spaHandler,
 		cfg.CORSAllowOrigins,

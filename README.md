@@ -89,6 +89,7 @@ docker compose up --build
 主要な環境変数:
 
 - `APP_ADDR`（デフォルト: `:8080`）
+- `APP_VERSION`（デフォルト: `unknown`）
 - `DB_PATH`（デフォルト: `/data/app.db`）
 - `GARBAGE_SCHEDULE_PATH`（デフォルト: `config/garbage_schedule.json`）
 - `BACKUP_DIR`（デフォルト: `/data/backups`）
@@ -125,6 +126,19 @@ docker compose up --build
 ### health
 
 - `GET /api/v1/health`
+
+### status（運用確認）
+
+- `GET /api/v1/status`
+
+`/api/v1/status` は Bearer 認証が必須です。
+- `AUTH_TOKEN` 設定時: `Authorization: Bearer <token>` が必要
+- `AUTH_TOKEN` 未設定時: `403`（`status endpoint requires AUTH_TOKEN`）を返します
+
+```bash
+curl http://localhost:8080/api/v1/status \
+  -H "Authorization: Bearer <token>"
+```
 
 ### dashboard
 
@@ -191,6 +205,20 @@ curl -X POST http://localhost:8080/api/v1/admin/backup \
    例: `cp ./data/backups/app-20260304-130000.db ./data/app.db`
 4. `docker compose up --build -d` で起動
 5. `GET /api/v1/health` と画面表示を確認
+
+## 困った時の確認手順
+
+まず `status` でアプリ状態を確認してください。
+
+```bash
+curl http://localhost:8080/api/v1/status \
+  -H "Authorization: Bearer <token>"
+```
+
+主な確認項目:
+- `db.ok` が `true` か
+- `config.garbageScheduleLoaded` が `true` か
+- `lastBackup` が更新されているか
 
 ## 注意事項
 

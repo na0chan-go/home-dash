@@ -35,6 +35,8 @@
 
 - `VALIDATION_ERROR`（400）
 - `NOT_FOUND`（404）
+- `UNAUTHORIZED`（401）
+- `FORBIDDEN`（403）
 - `INTERNAL_ERROR`（500）
 - `CONFIG_ERROR`（500、設定ファイル起因）
 
@@ -50,6 +52,10 @@
 ### health
 
 - `GET /api/v1/health`
+
+### status
+
+- `GET /api/v1/status`（Bearer必須）
 
 ### notes
 
@@ -94,5 +100,26 @@
       "label": "燃えるゴミ"
     }
   }
+}
+```
+
+### GET /api/v1/status
+
+```json
+{
+  "appVersion": "unknown",
+  "uptimeSeconds": 1200,
+  "serverTime": "2026-03-05T09:00:00+09:00",
+  "db": {
+    "path": "/data/app.db",
+    "ok": true
+  },
+  "config": {
+    "garbageScheduleLoaded": true
+  },
+  "auth": {
+    "enabled": true
+  },
+  "lastBackup": "2026-03-05T08:30:00+09:00"
 }
 ```

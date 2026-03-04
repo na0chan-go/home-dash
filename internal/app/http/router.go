@@ -7,6 +7,7 @@ import (
 	usegarbage "github.com/na0chan-go/home-dash/internal/usecase/garbage"
 	"github.com/na0chan-go/home-dash/internal/usecase/health"
 	usenotes "github.com/na0chan-go/home-dash/internal/usecase/notes"
+	usestatus "github.com/na0chan-go/home-dash/internal/usecase/status"
 )
 
 func NewRouter(
@@ -20,6 +21,7 @@ func NewRouter(
 	garbageTomorrowUseCase *usegarbage.GetTomorrowUseCase,
 	garbageSummaryUseCase *usegarbage.GetSummaryUseCase,
 	dashboardUseCase *usedashboard.GetDashboardUseCase,
+	statusUseCase *usestatus.GetStatusUseCase,
 	adminBackupHandler *AdminBackupHandler,
 	spaHandler *SPAHandler,
 	corsAllowOrigins []string,
@@ -30,6 +32,7 @@ func NewRouter(
 	notesHandler := NewNotesHandler(listNotesUseCase, addNoteUseCase, deleteNoteUseCase, setPinUseCase, setDoneUseCase)
 	garbageHandler := NewGarbageHandler(garbageTodayUseCase, garbageTomorrowUseCase, garbageSummaryUseCase)
 	dashboardHandler := NewDashboardHandler(dashboardUseCase)
+	statusHandler := NewStatusHandler(statusUseCase)
 
 	mux.HandleFunc("/api/v1/health", healthHandler.Get)
 	mux.HandleFunc("/api/v1/notes", notesHandler.HandleNotes)
@@ -38,6 +41,7 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/garbage/tomorrow", garbageHandler.Tomorrow)
 	mux.HandleFunc("/api/v1/garbage/summary", garbageHandler.Summary)
 	mux.HandleFunc("/api/v1/dashboard", dashboardHandler.Get)
+	mux.HandleFunc("/api/v1/status", statusHandler.Get)
 	mux.HandleFunc("/api/v1/admin/backup", adminBackupHandler.Create)
 	mux.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, errorCodeNotFound, "not found")

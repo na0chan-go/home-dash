@@ -38,6 +38,19 @@ func authTokenMiddleware(next http.Handler, authToken string) http.Handler {
 			return
 		}
 
+		if isStatusAPIPath(r.URL.Path) {
+			if authToken == "" {
+				writeError(w, r, http.StatusForbidden, errorCodeForbidden, "status endpoint requires AUTH_TOKEN")
+				return
+			}
+			if !isValidBearerToken(r.Header.Get("Authorization"), authToken) {
+				writeError(w, r, http.StatusUnauthorized, errorCodeUnauthorized, "authentication required")
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if isAdminAPIPath(r.URL.Path) {
 			if authToken == "" {
 				writeError(w, r, http.StatusForbidden, errorCodeForbidden, "admin endpoint requires AUTH_TOKEN")
@@ -71,6 +84,10 @@ func isAPIv1Path(path string) bool {
 
 func isAdminAPIPath(path string) bool {
 	return path == "/api/v1/admin" || strings.HasPrefix(path, "/api/v1/admin/")
+}
+
+func isStatusAPIPath(path string) bool {
+	return path == "/api/v1/status"
 }
 
 func isValidBearerToken(authHeader string, expectedToken string) bool {

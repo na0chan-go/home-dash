@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	AppAddr             string
+	AppVersion          string
 	DBPath              string
 	GarbageSchedulePath string
 	WebDistPath         string
@@ -22,6 +23,7 @@ type Config struct {
 func LoadFromEnv() Config {
 	return Config{
 		AppAddr:             getEnv("APP_ADDR", ":8080"),
+		AppVersion:          getEnv("APP_VERSION", "unknown"),
 		DBPath:              getEnv("DB_PATH", "/data/app.db"),
 		GarbageSchedulePath: getEnv("GARBAGE_SCHEDULE_PATH", "config/garbage_schedule.json"),
 		WebDistPath:         getEnv("WEB_DIST_PATH", "web/dist"),
