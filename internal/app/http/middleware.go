@@ -25,8 +25,8 @@ func (r *statusRecorder) WriteHeader(status int) {
 }
 
 func applyMiddlewares(next http.Handler, corsAllowOrigins []string) http.Handler {
-	h := requestIDAndAccessLogMiddleware(next)
-	h = corsMiddleware(h, corsAllowOrigins)
+	h := corsMiddleware(next, corsAllowOrigins)
+	h = requestIDAndAccessLogMiddleware(h)
 	return h
 }
 

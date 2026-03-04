@@ -103,4 +103,7 @@ func TestCORSPreflightReturnsNoContent(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", rec.Code)
 	}
+	if rec.Header().Get("X-Request-Id") == "" {
+		t.Fatal("expected X-Request-Id header for preflight request")
+	}
 }
