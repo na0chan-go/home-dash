@@ -58,6 +58,27 @@ func TestSPAHandler_ServesStaticFile(t *testing.T) {
 	}
 }
 
+func TestSPAHandler_ServesWebManifestWithManifestContentType(t *testing.T) {
+	dir := t.TempDir()
+	manifestPath := filepath.Join(dir, "manifest.webmanifest")
+	if err := os.WriteFile(manifestPath, []byte(`{"name":"HomeDash"}`), 0o644); err != nil {
+		t.Fatalf("write manifest failed: %v", err)
+	}
+
+	h := NewSPAHandler(dir)
+	req := httptest.NewRequest(http.MethodGet, "/manifest.webmanifest", nil)
+	rec := httptest.NewRecorder()
+
+	h.Serve(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/manifest+json" {
+		t.Fatalf("expected content-type application/manifest+json, got %q", got)
+	}
+}
+
 func TestSPAHandler_DoesNotHandleAPIPath(t *testing.T) {
 	h := NewSPAHandler(t.TempDir())
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)

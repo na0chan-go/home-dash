@@ -1,6 +1,7 @@
 package http
 
 import (
+	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -38,6 +39,7 @@ func (h *SPAHandler) Serve(w http.ResponseWriter, r *http.Request) {
 	if requestedPath != "" {
 		candidate := filepath.Join(h.distDir, requestedPath)
 		if fi, err := os.Stat(candidate); err == nil && !fi.IsDir() {
+			ensureContentType(w, requestedPath)
 			http.ServeFile(w, r, candidate)
 			return
 		}
@@ -57,4 +59,14 @@ func (h *SPAHandler) Serve(w http.ResponseWriter, r *http.Request) {
 
 func isStaticAssetRequest(requestedPath string) bool {
 	return path.Ext(requestedPath) != ""
+}
+
+func ensureContentType(w http.ResponseWriter, requestedPath string) {
+	if strings.HasSuffix(requestedPath, ".webmanifest") {
+		w.Header().Set("Content-Type", "application/manifest+json")
+		return
+	}
+	if contentType := mime.TypeByExtension(path.Ext(requestedPath)); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
 }
