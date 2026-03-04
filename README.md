@@ -9,10 +9,9 @@ MVP0では次の3機能に限定しています。
 
 ## 画面イメージ
 
-![HomeDash ダッシュボード（プレースホルダー）](docs/screenshots/dashboard.png)
+![HomeDash ダッシュボード（実機スクリーンショット）](docs/screenshots/dashboard.png)
 
-`docs/screenshots/dashboard.png` はプレースホルダーです。  
-運用開始前に実画面のスクリーンショットへ差し替えてください。
+実機（iPad/iPhone）での確認時点のダッシュボード画面です。
 
 ## 前提
 
