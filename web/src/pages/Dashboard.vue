@@ -22,6 +22,8 @@ const refreshFailed = ref(false)
 const operationError = ref('')
 const lastUpdatedAt = ref<Date | null>(null)
 const pendingIDs = ref<number[]>([])
+const isOffline = ref(!navigator.onLine)
+const isLoadingDashboard = ref(false)
 
 let pollTimer: number | undefined
 let tempIDSeed = -1
@@ -80,6 +82,11 @@ function getOperationErrorMessage(err: unknown): string {
 }
 
 async function loadDashboard(): Promise<void> {
+  if (isOffline.value || isLoadingDashboard.value) {
+    return
+  }
+
+  isLoadingDashboard.value = true
   try {
     const data = await fetchDashboard()
     normalizeNotesOrder(data)
@@ -96,6 +103,7 @@ async function loadDashboard(): Promise<void> {
     }
   } finally {
     loading.value = false
+    isLoadingDashboard.value = false
   }
 }
 
@@ -269,17 +277,60 @@ const lastUpdatedLabel = computed(() => {
   }).format(lastUpdatedAt.value)
 })
 
-onMounted(async () => {
-  await loadDashboard()
+function startPolling(): void {
+  if (pollTimer !== undefined || isOffline.value) {
+    return
+  }
   pollTimer = window.setInterval(() => {
     void loadDashboard()
   }, 30_000)
+}
+
+function stopPolling(): void {
+  if (pollTimer === undefined) {
+    return
+  }
+  window.clearInterval(pollTimer)
+  pollTimer = undefined
+}
+
+function handleVisibilityChange(): void {
+  if (document.visibilityState === 'visible' && !isOffline.value) {
+    void loadDashboard()
+  }
+}
+
+function handleOffline(): void {
+  isOffline.value = true
+  stopPolling()
+}
+
+function handleOnline(): void {
+  isOffline.value = false
+  startPolling()
+  void loadDashboard()
+}
+
+onMounted(async () => {
+  window.addEventListener('offline', handleOffline)
+  window.addEventListener('online', handleOnline)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  if (isOffline.value) {
+    loading.value = false
+    stopPolling()
+    return
+  }
+
+  await loadDashboard()
+  startPolling()
 })
 
 onUnmounted(() => {
-  if (pollTimer !== undefined) {
-    window.clearInterval(pollTimer)
-  }
+  stopPolling()
+  window.removeEventListener('offline', handleOffline)
+  window.removeEventListener('online', handleOnline)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -288,8 +339,9 @@ onUnmounted(() => {
     <header class="header">
       <h1>HomeDash</h1>
       <div class="status">
-        <span>最終更新 {{ lastUpdatedLabel }}</span>
+        <span>更新: {{ lastUpdatedLabel }}</span>
         <span v-if="refreshFailed" class="status-error">更新失敗</span>
+        <span v-if="isOffline" class="status-offline">オフライン</span>
       </div>
     </header>
 
@@ -348,6 +400,11 @@ h1 {
 
 .status-error {
   color: #b00020;
+  font-weight: 700;
+}
+
+.status-offline {
+  color: #0b5fa8;
   font-weight: 700;
 }
 
