@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, toRaw } from 'vue'
 import NoticeBoard from '../components/NoticeBoard.vue'
 import ShoppingList from '../components/ShoppingList.vue'
 import GarbagePanel from '../components/GarbagePanel.vue'
+import { createAsyncQueue } from '../utils/asyncQueue'
 import {
   APIError,
   createNote,
@@ -59,6 +60,8 @@ let nightTimer: number | undefined
 let inactivityTimer: number | undefined
 let screenSaverClockTimer: number | undefined
 let tempIDSeed = -1
+// Run note mutations one-by-one to avoid optimistic rollback collisions.
+const enqueueNoteOperation = createAsyncQueue()
 
 function parseHourMinute(raw: string, fallbackMinutes: number): number {
   const normalized = raw.trim()
@@ -283,27 +286,29 @@ function cloneDashboardState(state: DashboardResponse): DashboardResponse {
 }
 
 async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, commit: () => Promise<void>): Promise<void> {
-  const state = dashboard.value
-  if (!state) {
-    throw new Error('dashboard state not loaded')
-  }
+  return enqueueNoteOperation(async () => {
+    const state = dashboard.value
+    if (!state) {
+      throw new Error('dashboard state not loaded')
+    }
 
-  operationError.value = ''
-  const snapshot = cloneDashboardState(toRaw(state) as DashboardResponse)
-  apply(state)
+    operationError.value = ''
+    const snapshot = cloneDashboardState(toRaw(state) as DashboardResponse)
+    apply(state)
 
-  try {
-    await commit()
-    refreshFailed.value = false
-    lastUpdatedAt.value = new Date()
-  } catch (err) {
-    console.error(err)
-    dashboard.value = snapshot
-    refreshFailed.value = true
-    const message = getOperationErrorMessage(err)
-    operationError.value = message
-    throw new Error(message)
-  }
+    try {
+      await commit()
+      refreshFailed.value = false
+      lastUpdatedAt.value = new Date()
+    } catch (err) {
+      console.error(err)
+      dashboard.value = snapshot
+      refreshFailed.value = true
+      const message = getOperationErrorMessage(err)
+      operationError.value = message
+      throw new Error(message)
+    }
+  })
 }
 
 async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
