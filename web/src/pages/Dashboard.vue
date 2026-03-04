@@ -276,6 +276,12 @@ async function loadDashboard(): Promise<void> {
   }
 }
 
+function cloneDashboardState(state: DashboardResponse): DashboardResponse {
+  // `structuredClone` can fail on iOS Safari when reactive proxy values are mixed in.
+  // Dashboard DTO is JSON-safe, so we snapshot through JSON for stable optimistic rollback.
+  return JSON.parse(JSON.stringify(state)) as DashboardResponse
+}
+
 async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, commit: () => Promise<void>): Promise<void> {
   const state = dashboard.value
   if (!state) {
@@ -283,7 +289,7 @@ async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, c
   }
 
   operationError.value = ''
-  const snapshot = structuredClone(toRaw(state)) as DashboardResponse
+  const snapshot = cloneDashboardState(toRaw(state) as DashboardResponse)
   apply(state)
 
   try {
