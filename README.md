@@ -119,6 +119,13 @@ docker compose down
 ### 実機確認時の補足
 
 - `AUTH_TOKEN` を設定している場合、`/api/v1/*` は Bearer 認証が必須です
+- `AUTH_TOKEN` 設定時の `health` 確認例:
+
+```bash
+curl http://localhost:8080/api/v1/health \
+  -H "Authorization: Bearer <token>"
+```
+
 - iPad/iPhone と Mac が同じWi-Fiに接続されていることを確認してください
 - `docker compose ps` で `app` が `Up` になっていることを確認してください
 - Macのファイアウォール設定で `8080` へのアクセスが遮断されていないか確認してください
