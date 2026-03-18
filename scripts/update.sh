@@ -33,7 +33,9 @@ backup_before_update() {
     return
   fi
 
-  echo "[1/3] AUTH_TOKEN 未設定のためファイルコピーで更新前バックアップを作成します"
+  echo "[1/3] AUTH_TOKEN 未設定のため、アプリを停止してから更新前バックアップを作成します"
+  docker compose stop app >/dev/null 2>&1 || true
+
   if [ ! -f "$DB_PATH" ]; then
     echo "DB ファイルが見つかりません: $DB_PATH" >&2
     exit 1

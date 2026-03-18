@@ -64,9 +64,10 @@ curl -X POST http://localhost:8080/api/v1/admin/backup \
 
 #### `AUTH_TOKEN` を使わない場合
 
-ホスト側の `./data/app.db` を手動で退避します。
+稼働中の SQLite を直接コピーしないため、先にアプリを停止してから `./data/app.db` を退避します。
 
 ```bash
+docker compose stop app
 mkdir -p ./data/backups
 cp ./data/app.db ./data/backups/app-$(date +%Y%m%d-%H%M%S)-pre-update.db
 ```
@@ -103,7 +104,7 @@ docker compose up --build -d
 ```
 
 `AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。  
-`AUTH_TOKEN` を使わない場合は、`./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
+`AUTH_TOKEN` を使わない場合は、アプリ停止後に `./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
 
 必要に応じて `APP_URL`、待機回数、待機秒数を上書きできます。
 
@@ -180,4 +181,4 @@ docker compose up --build -d
 
 - `scripts/update.sh` は自動ロールバックしません
 - 更新前バックアップに失敗した場合は、その時点で更新を止める運用にしてください
-- `AUTH_TOKEN` を使わない運用でも、`scripts/update.sh` はファイルコピー方式で更新前バックアップを作成できます
+- `AUTH_TOKEN` を使わない運用では、`scripts/update.sh` が `docker compose stop app` を行ってから更新前バックアップを作成します

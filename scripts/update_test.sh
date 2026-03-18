@@ -111,6 +111,7 @@ test_noauth_mode() {
 
   run_script noauth "$case_dir" > "$case_dir/stdout"
 
+  assert_contains "$case_dir/log" "docker compose stop app"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/dashboard"
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
