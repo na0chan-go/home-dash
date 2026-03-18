@@ -56,6 +56,9 @@ case "$TEST_MODE:$url" in
   noauth:http://localhost:8080/api/v1/health)
     printf '{ "status": "ok" }\n'
     ;;
+  noauth:http://localhost:8080/api/v1/dashboard)
+    printf '{ "generatedAt": "2026-03-18T12:00:00+09:00", "garbage": { "today": {}, "tomorrow": {} } }\n'
+    ;;
   *)
     exit 1
     ;;
@@ -109,6 +112,7 @@ test_noauth_mode() {
   run_script noauth "$case_dir" > "$case_dir/stdout"
 
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
+  assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/dashboard"
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
 }
 
@@ -126,8 +130,63 @@ test_degraded_status_fails() {
   assert_contains "$case_dir/stderr" "status 確認に失敗しました"
 }
 
+test_partial_status_body_fails() {
+  case_dir="$TEST_TMPDIR/partial"
+  mkdir -p "$case_dir/data/backups"
+  printf 'db' > "$case_dir/data/app.db"
+  TEST_LOG="$case_dir/log"
+
+  cat <<'EOF' > "$FAKEBIN/curl"
+#!/bin/sh
+url=""
+method="GET"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -X)
+      shift
+      method=$1
+      ;;
+    -H|--header)
+      shift
+      ;;
+    --fail|--silent|--show-error)
+      ;;
+    *)
+      url=$1
+      ;;
+  esac
+  shift
+done
+
+echo "$method $url" >> "$TEST_LOG"
+
+case "$url" in
+  http://localhost:8080/api/v1/admin/backup)
+    printf '{"ok":true}\n'
+    exit 0
+    ;;
+  http://localhost:8080/api/v1/status)
+    printf '{ "db": { "ok": true }, "config": { "garbageScheduleLoaded": true }'
+    exit 22
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+EOF
+  chmod +x "$FAKEBIN/curl"
+
+  if run_script token "$case_dir" "secret" > "$case_dir/stdout" 2>"$case_dir/stderr"; then
+    echo "expected partial status body run to fail" >&2
+    exit 1
+  fi
+
+  assert_contains "$case_dir/stderr" "status 確認に失敗しました"
+}
+
 test_token_mode
 test_noauth_mode
 test_degraded_status_fails
+test_partial_status_body_fails
 
 echo "update.sh tests passed"

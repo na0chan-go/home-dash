@@ -36,16 +36,18 @@ curl http://localhost:8080/api/v1/status \
 
 #### `AUTH_TOKEN` を使わない場合
 
-`/api/v1/status` と `/api/v1/admin/backup` は利用できないため、`/api/v1/health` とログで確認します。
+`/api/v1/status` と `/api/v1/admin/backup` は利用できないため、`/api/v1/health`、`/api/v1/dashboard`、ログで確認します。
 
 ```bash
 curl http://localhost:8080/api/v1/health
+curl http://localhost:8080/api/v1/dashboard
 docker compose logs --tail=50 app
 ```
 
 確認ポイント:
 
 - `/api/v1/health` が `200` を返す
+- `/api/v1/dashboard` が `200` を返す
 - ログに DB や設定読込のエラーが出ていない
 
 ### 3. 手動バックアップ実行
@@ -101,7 +103,7 @@ docker compose up --build -d
 ```
 
 `AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。  
-`AUTH_TOKEN` を使わない場合は、`./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` を確認します。
+`AUTH_TOKEN` を使わない場合は、`./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
 
 必要に応じて `APP_URL`、待機回数、待機秒数を上書きできます。
 
@@ -135,12 +137,14 @@ curl http://localhost:8080/api/v1/status \
 
 ```bash
 curl http://localhost:8080/api/v1/health
+curl http://localhost:8080/api/v1/dashboard
 docker compose logs --tail=50 app
 ```
 
 確認ポイント:
 
 - `/api/v1/health` が `200` を返す
+- `/api/v1/dashboard` が `200` を返す
 - ログに DB や設定読込のエラーが出ていない
 
 ### 3. 主要操作確認

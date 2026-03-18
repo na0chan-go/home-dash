@@ -15,6 +15,7 @@ AUTH_HEADER="Authorization: Bearer $AUTH_TOKEN"
 BACKUP_URL="$APP_URL/api/v1/admin/backup"
 STATUS_URL="$APP_URL/api/v1/status"
 HEALTH_URL="$APP_URL/api/v1/health"
+DASHBOARD_URL="$APP_URL/api/v1/dashboard"
 
 body_matches() {
   body=$1
@@ -47,8 +48,8 @@ backup_before_update() {
 wait_for_health() {
   attempt=1
   while [ "$attempt" -le "$WAIT_RETRIES" ]; do
-    health_body=$(curl --silent --show-error --fail "$HEALTH_URL" 2>/dev/null || true)
-    if body_matches "$health_body" '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+    if health_body=$(curl --silent --show-error --fail "$HEALTH_URL" 2>/dev/null) &&
+      body_matches "$health_body" '"status"[[:space:]]*:[[:space:]]*"ok"'; then
       echo "health 確認に成功しました"
       return 0
     fi
@@ -61,11 +62,30 @@ wait_for_health() {
   return 1
 }
 
+wait_for_dashboard() {
+  attempt=1
+  while [ "$attempt" -le "$WAIT_RETRIES" ]; do
+    if dashboard_body=$(curl --silent --show-error --fail "$DASHBOARD_URL" 2>/dev/null) &&
+      body_matches "$dashboard_body" '"generatedAt"[[:space:]]*:' &&
+      body_matches "$dashboard_body" '"today"[[:space:]]*:' &&
+      body_matches "$dashboard_body" '"tomorrow"[[:space:]]*:'; then
+      printf '%s\n' "$dashboard_body"
+      return 0
+    fi
+
+    sleep "$WAIT_SECONDS"
+    attempt=$((attempt + 1))
+  done
+
+  echo "dashboard 確認に失敗しました。DB または設定読込が正常ではない可能性があります。" >&2
+  return 1
+}
+
 wait_for_status() {
   attempt=1
   while [ "$attempt" -le "$WAIT_RETRIES" ]; do
-    status_body=$(curl --silent --show-error --fail "$STATUS_URL" -H "$AUTH_HEADER" 2>/dev/null || true)
-    if body_matches "$status_body" '"ok"[[:space:]]*:[[:space:]]*true' &&
+    if status_body=$(curl --silent --show-error --fail "$STATUS_URL" -H "$AUTH_HEADER" 2>/dev/null) &&
+      body_matches "$status_body" '"ok"[[:space:]]*:[[:space:]]*true' &&
       body_matches "$status_body" '"garbageScheduleLoaded"[[:space:]]*:[[:space:]]*true'; then
       printf '%s\n' "$status_body"
       return 0
@@ -92,8 +112,9 @@ if [ -n "$AUTH_TOKEN" ]; then
   echo "[3/3] 更新後の status を確認します"
   wait_for_status
 else
-  echo "[3/3] 更新後の health を確認します"
+  echo "[3/3] 更新後の health と dashboard を確認します"
   wait_for_health
+  wait_for_dashboard
 fi
 
 echo "更新処理は完了しました。UI表示と主要操作を続けて確認してください。"
