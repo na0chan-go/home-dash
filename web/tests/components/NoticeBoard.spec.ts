@@ -48,6 +48,25 @@ describe('NoticeBoard', () => {
     expect(onAdd).toHaveBeenCalledWith('牛乳を買う', '妻')
   })
 
+  it('投稿者トグルを切り替えるとlocalStorageに保存する', async () => {
+    const wrapper = mount(NoticeBoard, {
+      props: {
+        items: [],
+        pendingIds: [],
+        onAdd: vi.fn().mockResolvedValue(undefined),
+        onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onDeleteNote: vi.fn().mockResolvedValue(undefined)
+      }
+    })
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '妻')!
+      .trigger('click')
+
+    expect(window.localStorage.getItem('home-dash.notice-author')).toBe('妻')
+  })
+
   it('追加時に本文をtrimしてonAddを呼び、入力欄をクリアする', async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined)
     const wrapper = mount(NoticeBoard, {

@@ -58,6 +58,11 @@ function authorLabel(note: Note): string {
   return note.author.trim() === '' ? '投稿者未設定' : note.author
 }
 
+function selectAuthor(author: string): void {
+  selectedAuthor.value = author
+  saveSelectedAuthor()
+}
+
 async function submit(): Promise<void> {
   validationError.value = validate(body.value)
   actionError.value = ''
@@ -115,12 +120,21 @@ async function confirmDelete(): Promise<void> {
     <h2 class="hd-panel-title">連絡</h2>
 
     <form class="hd-composer" @submit.prevent="submit">
-      <label class="notice-author-field">
+      <div class="notice-author-field">
         <span class="notice-author-label">投稿者</span>
-        <select v-model="selectedAuthor" class="hd-select" @change="saveSelectedAuthor">
-          <option v-for="author in noticeAuthors" :key="author" :value="author">{{ author }}</option>
-        </select>
-      </label>
+        <div class="notice-author-toggle" role="radiogroup" aria-label="投稿者">
+          <button
+            v-for="author in noticeAuthors"
+            :key="author"
+            type="button"
+            :class="['hd-btn', 'hd-btn-small', 'notice-author-option', { 'is-selected': selectedAuthor === author }]"
+            :aria-pressed="selectedAuthor === author"
+            @click="selectAuthor(author)"
+          >
+            {{ author }}
+          </button>
+        </div>
+      </div>
       <input
         ref="inputRef"
         v-model="body"
@@ -186,14 +200,22 @@ async function confirmDelete(): Promise<void> {
   font-weight: 700;
 }
 
-.hd-select {
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid #ced7e8;
-  border-radius: 14px;
+.notice-author-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.notice-author-option {
+  min-width: 64px;
+  border-color: #cad5ea;
   background: rgba(255, 255, 255, 0.92);
-  color: #27334d;
-  font: inherit;
+}
+
+.notice-author-option.is-selected {
+  border-color: #2559c0;
+  background: #2f6ce5;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(47, 108, 229, 0.18);
 }
 
 .notice-content {
