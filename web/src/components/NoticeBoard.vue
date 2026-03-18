@@ -183,6 +183,13 @@ async function confirmDelete(): Promise<void> {
 </template>
 
 <style scoped>
+.notice-board .hd-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
 .is-pinned {
   border-color: #ead59a;
   background: #fff4d2;
@@ -191,6 +198,7 @@ async function confirmDelete(): Promise<void> {
 
 .notice-author-field {
   display: grid;
+  grid-column: 1 / -1;
   gap: 6px;
 }
 
@@ -202,6 +210,7 @@ async function confirmDelete(): Promise<void> {
 
 .notice-author-toggle {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -234,5 +243,15 @@ async function confirmDelete(): Promise<void> {
   color: #2b5fc1;
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  .notice-board .hd-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .notice-board .hd-composer .hd-btn-primary {
+    width: 100%;
+  }
 }
 </style>
