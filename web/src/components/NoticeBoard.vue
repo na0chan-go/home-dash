@@ -171,13 +171,15 @@ async function confirmDelete(): Promise<void> {
         </div>
         <div class="notice-actions">
           <button
-            class="hd-btn hd-btn-small notice-icon-button"
+            :class="['hd-btn', 'hd-btn-small', 'notice-icon-button', { 'is-active': note.acknowledged }]"
             type="button"
             :disabled="isPending(note.id)"
             :aria-label="note.acknowledged ? '確認解除' : '確認済みにする'"
             @click="onToggleAcknowledged(note)"
           >
-            ✅
+            <span class="notice-icon-indicator" aria-hidden="true">
+              {{ note.acknowledged ? '✓' : '' }}
+            </span>
           </button>
           <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
             {{ note.pinned ? 'ピン解除' : 'ピン' }}
@@ -282,7 +284,26 @@ async function confirmDelete(): Promise<void> {
 .notice-icon-button {
   min-width: 40px;
   padding: 0;
-  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.notice-icon-button.is-active {
+  border-color: #2559c0;
+  background: #2f6ce5;
+  color: #ffffff;
+}
+
+.notice-icon-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .notice-author-chip {
