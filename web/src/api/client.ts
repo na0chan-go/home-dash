@@ -4,6 +4,7 @@ export type Note = {
   id: number
   kind: NoteKind
   body: string
+  author: string
   pinned: boolean
   done: boolean
   created_at: string
@@ -93,10 +94,10 @@ export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardRes
   })
 }
 
-export async function createNote(kind: NoteKind, body: string): Promise<Note> {
+export async function createNote(kind: NoteKind, body: string, author = ''): Promise<Note> {
   return requestJSON<Note>('/api/v1/notes', {
     method: 'POST',
-    body: JSON.stringify({ kind, body })
+    body: JSON.stringify({ kind, body, author })
   })
 }
 

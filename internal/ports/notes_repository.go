@@ -23,6 +23,7 @@ type ListNotesParams struct {
 type CreateNoteParams struct {
 	Kind   notes.Kind
 	Body   string
+	Author string
 	Pinned bool
 	Done   bool
 }

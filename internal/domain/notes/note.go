@@ -13,6 +13,7 @@ type Note struct {
 	ID        int64
 	Kind      Kind
 	Body      string
+	Author    string
 	Pinned    bool
 	Done      bool
 	CreatedAt time.Time

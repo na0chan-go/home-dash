@@ -83,6 +83,7 @@ func toNoteDTOs(notes []domainnotes.Note) []NoteDTO {
 			ID:        n.ID,
 			Kind:      string(n.Kind),
 			Body:      n.Body,
+			Author:    n.Author,
 			Pinned:    n.Pinned,
 			Done:      n.Done,
 			CreatedAt: n.CreatedAt.Format(timestampLayout),

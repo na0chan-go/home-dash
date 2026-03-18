@@ -2,19 +2,42 @@
 import { nextTick, ref } from 'vue'
 import type { Note } from '../api/client'
 
+const noticeAuthors = ['夫', '妻'] as const
+const noticeAuthorStorageKey = 'home-dash.notice-author'
+
 const props = defineProps<{
   items: Note[]
   pendingIds: number[]
-  onAdd: (body: string) => Promise<void>
+  onAdd: (body: string, author: string) => Promise<void>
   onTogglePin: (note: Note) => Promise<void>
   onDeleteNote: (note: Note) => Promise<void>
 }>()
 
 const body = ref('')
+const selectedAuthor = ref(loadInitialAuthor())
 const validationError = ref('')
 const actionError = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const deleteTarget = ref<Note | null>(null)
+
+function loadInitialAuthor(): string {
+  if (typeof window === 'undefined') {
+    return noticeAuthors[0]
+  }
+
+  const stored = window.localStorage.getItem(noticeAuthorStorageKey)
+  if (stored && noticeAuthors.includes(stored as (typeof noticeAuthors)[number])) {
+    return stored
+  }
+  return noticeAuthors[0]
+}
+
+function saveSelectedAuthor(): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  window.localStorage.setItem(noticeAuthorStorageKey, selectedAuthor.value)
+}
 
 function validate(raw: string): string {
   const normalized = raw.trim()
@@ -31,6 +54,10 @@ function isPending(id: number): boolean {
   return props.pendingIds.includes(id)
 }
 
+function authorLabel(note: Note): string {
+  return note.author.trim() === '' ? '投稿者未設定' : note.author
+}
+
 async function submit(): Promise<void> {
   validationError.value = validate(body.value)
   actionError.value = ''
@@ -39,7 +66,7 @@ async function submit(): Promise<void> {
   }
 
   try {
-    await props.onAdd(body.value.trim())
+    await props.onAdd(body.value.trim(), selectedAuthor.value)
     body.value = ''
     await nextTick()
     inputRef.value?.focus()
@@ -88,6 +115,12 @@ async function confirmDelete(): Promise<void> {
     <h2 class="hd-panel-title">連絡</h2>
 
     <form class="hd-composer" @submit.prevent="submit">
+      <label class="notice-author-field">
+        <span class="notice-author-label">投稿者</span>
+        <select v-model="selectedAuthor" class="hd-select" @change="saveSelectedAuthor">
+          <option v-for="author in noticeAuthors" :key="author" :value="author">{{ author }}</option>
+        </select>
+      </label>
       <input
         ref="inputRef"
         v-model="body"
@@ -104,7 +137,10 @@ async function confirmDelete(): Promise<void> {
 
     <ul v-if="items.length > 0" class="hd-list">
       <li v-for="note in items" :key="note.id" :class="['hd-list-item', { 'is-pinned': note.pinned }]">
-        <span class="hd-list-body">{{ note.body }}</span>
+        <div class="notice-content">
+          <span class="notice-author-chip">{{ authorLabel(note) }}</span>
+          <span class="hd-list-body">{{ note.body }}</span>
+        </div>
         <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
           {{ note.pinned ? 'ピン解除' : 'ピン' }}
         </button>
@@ -137,5 +173,44 @@ async function confirmDelete(): Promise<void> {
   border-color: #ead59a;
   background: #fff4d2;
   box-shadow: inset 4px 0 0 #e6bb40;
+}
+
+.notice-author-field {
+  display: grid;
+  gap: 6px;
+}
+
+.notice-author-label {
+  color: #5c6886;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.hd-select {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #ced7e8;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #27334d;
+  font: inherit;
+}
+
+.notice-content {
+  display: grid;
+  gap: 8px;
+}
+
+.notice-author-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(53, 102, 221, 0.1);
+  color: #2b5fc1;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 </style>

@@ -311,7 +311,7 @@ async function withOptimisticUpdate(apply: (state: DashboardResponse) => void, c
   })
 }
 
-async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
+async function handleAddNote(kind: NoteKind, body: string, author = ''): Promise<void> {
   if (!dashboard.value) {
     throw new Error('dashboard state not loaded')
   }
@@ -323,6 +323,7 @@ async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
     id: tempID,
     kind,
     body,
+    author: kind === 'notice' ? author : '',
     pinned: false,
     done: false,
     created_at: nowISO,
@@ -338,7 +339,7 @@ async function handleAddNote(kind: NoteKind, body: string): Promise<void> {
       }
     },
     async () => {
-      const created = await createNote(kind, body)
+      const created = await createNote(kind, body, author)
       const latest = dashboard.value
       if (!latest) {
         return
@@ -561,7 +562,7 @@ onUnmounted(() => {
       <NoticeBoard
         :items="dashboard.notes.notice"
         :pending-ids="pendingIDs"
-        :on-add="(body) => handleAddNote('notice', body)"
+        :on-add="(body, author) => handleAddNote('notice', body, author)"
         :on-toggle-pin="handleTogglePin"
         :on-delete-note="handleDelete"
       />
