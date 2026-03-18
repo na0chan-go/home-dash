@@ -47,6 +47,27 @@ describe('ShoppingList', () => {
     expect((input.element as HTMLInputElement).value).toBe('')
   })
 
+  it('固定候補を押すとそのまま追加できる', async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(ShoppingList, {
+      props: {
+        items: [],
+        pendingIds: [],
+        onAdd,
+        onToggleDone: vi.fn().mockResolvedValue(undefined),
+        onDeleteNote: vi.fn().mockResolvedValue(undefined)
+      }
+    })
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '牛乳')!
+      .trigger('click')
+    await flushPromises()
+
+    expect(onAdd).toHaveBeenCalledWith('牛乳')
+  })
+
   it('完了切替ボタンでonToggleDoneを呼ぶ', async () => {
     const note = shoppingNote(1, '牛乳', false)
     const onToggleDone = vi.fn().mockResolvedValue(undefined)
@@ -81,12 +102,33 @@ describe('ShoppingList', () => {
       }
     })
 
-    expect(wrapper.text()).toContain('牛乳')
-    expect(wrapper.text()).not.toContain('完了メモ')
+    const listText = wrapper.find('ul.hd-list').text()
+    expect(listText).toContain('牛乳')
+    expect(listText).not.toContain('完了メモ')
 
     await wrapper.get('input[type="checkbox"]').setValue(true)
 
-    expect(wrapper.text()).toContain('完了メモ')
+    expect(wrapper.find('ul.hd-list').text()).toContain('完了メモ')
+  })
+
+  it('最近追加した項目は重複なく表示する', () => {
+    const wrapper = mount(ShoppingList, {
+      props: {
+        items: [
+          shoppingNote(1, '牛乳', false),
+          shoppingNote(2, '卵', false),
+          shoppingNote(3, '牛乳', true)
+        ],
+        pendingIds: [],
+        onAdd: vi.fn().mockResolvedValue(undefined),
+        onToggleDone: vi.fn().mockResolvedValue(undefined),
+        onDeleteNote: vi.fn().mockResolvedValue(undefined)
+      }
+    })
+
+    const recentTitle = wrapper.text()
+    expect(recentTitle).toContain('最近追加した項目')
+    expect(wrapper.findAll('button').filter((button) => button.text() === '牛乳')).toHaveLength(2)
   })
 
   it('削除確認ダイアログでキャンセル/削除が正しく動く', async () => {

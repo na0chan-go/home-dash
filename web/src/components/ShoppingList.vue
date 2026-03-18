@@ -2,6 +2,8 @@
 import { computed, nextTick, ref } from 'vue'
 import type { Note } from '../api/client'
 
+const fixedSuggestions = ['牛乳', '卵', 'パン', 'ティッシュ', 'トイレットペーパー'] as const
+
 const props = defineProps<{
   items: Note[]
   pendingIds: number[]
@@ -24,6 +26,23 @@ const displayedItems = computed(() => {
   return props.items.filter((note) => !note.done)
 })
 
+const recentSuggestions = computed(() => {
+  const seen = new Set<string>()
+  const recent = [...props.items]
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .map((note) => note.body.trim())
+    .filter((body) => body !== '')
+    .filter((body) => {
+      if (seen.has(body)) {
+        return false
+      }
+      seen.add(body)
+      return true
+    })
+
+  return recent.slice(0, 5)
+})
+
 function validate(raw: string): string {
   const normalized = raw.trim()
   if (normalized === '') {
@@ -40,14 +59,22 @@ function isPending(id: number): boolean {
 }
 
 async function submit(): Promise<void> {
-  validationError.value = validate(body.value)
+  await submitBody(body.value)
+}
+
+async function submitSuggestion(suggestion: string): Promise<void> {
+  await submitBody(suggestion)
+}
+
+async function submitBody(raw: string): Promise<void> {
   actionError.value = ''
+  validationError.value = validate(raw)
   if (validationError.value !== '') {
     return
   }
 
   try {
-    await props.onAdd(body.value.trim())
+    await props.onAdd(raw.trim())
     body.value = ''
     await nextTick()
     inputRef.value?.focus()
@@ -110,6 +137,37 @@ async function confirmDelete(): Promise<void> {
     <p v-if="validationError" class="hd-error">{{ validationError }}</p>
     <p v-if="actionError" class="hd-error">{{ actionError }}</p>
 
+    <div class="shopping-suggestions">
+      <div class="shopping-suggestion-section">
+        <p class="shopping-suggestion-title">よく使う項目</p>
+        <div class="shopping-suggestion-list">
+          <button
+            v-for="suggestion in fixedSuggestions"
+            :key="suggestion"
+            type="button"
+            class="shopping-suggestion-chip"
+            @click="submitSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </button>
+        </div>
+      </div>
+      <div v-if="recentSuggestions.length > 0" class="shopping-suggestion-section">
+        <p class="shopping-suggestion-title">最近追加した項目</p>
+        <div class="shopping-suggestion-list">
+          <button
+            v-for="suggestion in recentSuggestions"
+            :key="suggestion"
+            type="button"
+            class="shopping-suggestion-chip shopping-suggestion-chip-secondary"
+            @click="submitSuggestion(suggestion)"
+          >
+            {{ suggestion }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <label class="hd-toggle">
       <input v-model="showDone" type="checkbox" />
       完了も表示
@@ -151,5 +209,46 @@ async function confirmDelete(): Promise<void> {
   border-color: #d6deeb;
   background: #f3f6fb;
   text-decoration: line-through;
+}
+
+.shopping-suggestions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.shopping-suggestion-section {
+  display: grid;
+  gap: 8px;
+}
+
+.shopping-suggestion-title {
+  margin: 0;
+  color: #5b6784;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.shopping-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shopping-suggestion-chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #c9d6ed;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2c5db9;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.shopping-suggestion-chip-secondary {
+  background: #f6f8fc;
+  color: #52617d;
 }
 </style>
