@@ -21,14 +21,15 @@ func (r *stubNotesRepository) Create(_ context.Context, params ports.CreateNoteP
 	r.created = params
 	now := time.Date(2026, 3, 18, 0, 0, 0, 0, time.UTC)
 	return domainnotes.Note{
-		ID:        1,
-		Kind:      params.Kind,
-		Body:      params.Body,
-		Author:    params.Author,
-		Pinned:    params.Pinned,
-		Done:      params.Done,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:           1,
+		Kind:         params.Kind,
+		Body:         params.Body,
+		Author:       params.Author,
+		Pinned:       params.Pinned,
+		Acknowledged: false,
+		Done:         params.Done,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}, nil
 }
 
@@ -38,6 +39,20 @@ func (r *stubNotesRepository) Delete(context.Context, int64) (bool, error) {
 
 func (r *stubNotesRepository) SetPinned(context.Context, int64, bool) (domainnotes.Note, bool, error) {
 	return domainnotes.Note{}, false, nil
+}
+
+func (r *stubNotesRepository) SetAcknowledged(_ context.Context, _ int64, acknowledged bool) (domainnotes.Note, bool, error) {
+	return domainnotes.Note{
+		ID:           1,
+		Kind:         domainnotes.KindNotice,
+		Body:         "連絡",
+		Author:       "妻",
+		Pinned:       false,
+		Acknowledged: acknowledged,
+		Done:         false,
+		CreatedAt:    time.Date(2026, 3, 18, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:    time.Date(2026, 3, 18, 0, 0, 0, 0, time.UTC),
+	}, true, nil
 }
 
 func (r *stubNotesRepository) SetDone(context.Context, int64, bool) (domainnotes.Note, bool, error) {
@@ -97,5 +112,21 @@ func TestAddNoteUseCase_ReturnsErrorWhenAuthorTooLong(t *testing.T) {
 	})
 	if err != ErrAuthorTooLong {
 		t.Fatalf("expected ErrAuthorTooLong, got %v", err)
+	}
+}
+
+func TestSetAcknowledgedUseCase_NoticeCanBeAcknowledged(t *testing.T) {
+	repo := &stubNotesRepository{}
+	usecase := NewSetAcknowledgedUseCase(repo)
+
+	got, err := usecase.Execute(context.Background(), SetAcknowledgedInput{
+		ID:           1,
+		Acknowledged: true,
+	})
+	if err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if !got.Acknowledged {
+		t.Fatal("expected acknowledged=true")
 	}
 }

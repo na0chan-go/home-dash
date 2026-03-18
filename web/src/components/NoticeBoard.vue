@@ -10,6 +10,7 @@ const props = defineProps<{
   pendingIds: number[]
   onAdd: (body: string, author: string) => Promise<void>
   onTogglePin: (note: Note) => Promise<void>
+  onToggleAcknowledged: (note: Note) => Promise<void>
   onDeleteNote: (note: Note) => Promise<void>
 }>()
 
@@ -89,6 +90,15 @@ async function onTogglePin(note: Note): Promise<void> {
   }
 }
 
+async function onToggleAcknowledged(note: Note): Promise<void> {
+  actionError.value = ''
+  try {
+    await props.onToggleAcknowledged(note)
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : '更新に失敗しました'
+  }
+}
+
 function requestDelete(note: Note): void {
   if (isPending(note.id)) {
     return
@@ -150,11 +160,23 @@ async function confirmDelete(): Promise<void> {
     <p v-if="actionError" class="hd-error">{{ actionError }}</p>
 
     <ul v-if="items.length > 0" class="hd-list">
-      <li v-for="note in items" :key="note.id" :class="['hd-list-item', { 'is-pinned': note.pinned }]">
+      <li
+        v-for="note in items"
+        :key="note.id"
+        :class="['hd-list-item', { 'is-pinned': note.pinned, 'is-acknowledged': note.acknowledged }]"
+      >
         <div class="notice-content">
           <span class="notice-author-chip">{{ authorLabel(note) }}</span>
           <span class="hd-list-body">{{ note.body }}</span>
         </div>
+        <button
+          class="hd-btn hd-btn-small"
+          type="button"
+          :disabled="isPending(note.id)"
+          @click="onToggleAcknowledged(note)"
+        >
+          {{ note.acknowledged ? '確認解除' : '確認済み' }}
+        </button>
         <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
           {{ note.pinned ? 'ピン解除' : 'ピン' }}
         </button>
@@ -194,6 +216,10 @@ async function confirmDelete(): Promise<void> {
   border-color: #ead59a;
   background: #fff4d2;
   box-shadow: inset 4px 0 0 #e6bb40;
+}
+
+.is-acknowledged {
+  opacity: 0.82;
 }
 
 .notice-author-field {

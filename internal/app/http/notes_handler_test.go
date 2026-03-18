@@ -16,6 +16,7 @@ import (
 
 type stubNotesRepo struct {
 	setPinnedCalled bool
+	setAckCalled    bool
 	setDoneCalled   bool
 	created         ports.CreateNoteParams
 }
@@ -45,6 +46,11 @@ func (s *stubNotesRepo) Delete(context.Context, int64) (bool, error) {
 
 func (s *stubNotesRepo) SetPinned(context.Context, int64, bool) (domainnotes.Note, bool, error) {
 	s.setPinnedCalled = true
+	return domainnotes.Note{}, false, nil
+}
+
+func (s *stubNotesRepo) SetAcknowledged(context.Context, int64, bool) (domainnotes.Note, bool, error) {
+	s.setAckCalled = true
 	return domainnotes.Note{}, false, nil
 }
 
@@ -107,6 +113,25 @@ func TestNotesHandler_SetDone_RequiresDoneField(t *testing.T) {
 	}
 }
 
+func TestNotesHandler_SetAcknowledged_RequiresAcknowledgedField(t *testing.T) {
+	h, repo := newNotesHandlerForTest()
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/notes/1/ack", strings.NewReader(`{}`))
+	rec := httptest.NewRecorder()
+
+	h.HandleByID(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"acknowledged is required"`) {
+		t.Fatalf("unexpected response body: %s", rec.Body.String())
+	}
+	if repo.setAckCalled {
+		t.Fatal("set acknowledged usecase should not be called when acknowledged field is missing")
+	}
+}
+
 func TestNotesHandler_Create_PassesAuthorToUseCase(t *testing.T) {
 	h, repo := newNotesHandlerForTest()
 
@@ -137,7 +162,8 @@ func newNotesHandlerForTest() (*NotesHandler, *stubNotesRepo) {
 	addUC := usenotes.NewAddNoteUseCase(repo)
 	deleteUC := usenotes.NewDeleteNoteUseCase(repo)
 	setPinUC := usenotes.NewSetPinUseCase(repo)
+	setAckUC := usenotes.NewSetAcknowledgedUseCase(repo)
 	setDoneUC := usenotes.NewSetDoneUseCase(repo)
 
-	return NewNotesHandler(listUC, addUC, deleteUC, setPinUC, setDoneUC), repo
+	return NewNotesHandler(listUC, addUC, deleteUC, setPinUC, setAckUC, setDoneUC), repo
 }

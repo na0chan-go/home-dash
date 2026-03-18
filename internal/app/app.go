@@ -44,6 +44,7 @@ func New(ctx context.Context) (*App, error) {
 	addNoteUseCase := usenotes.NewAddNoteUseCase(notesRepo)
 	deleteNoteUseCase := usenotes.NewDeleteNoteUseCase(notesRepo)
 	setPinUseCase := usenotes.NewSetPinUseCase(notesRepo)
+	setAckUseCase := usenotes.NewSetAcknowledgedUseCase(notesRepo)
 	setDoneUseCase := usenotes.NewSetDoneUseCase(notesRepo)
 
 	clock := system.NewClock()
@@ -79,6 +80,7 @@ func New(ctx context.Context) (*App, error) {
 		addNoteUseCase,
 		deleteNoteUseCase,
 		setPinUseCase,
+		setAckUseCase,
 		setDoneUseCase,
 		garbageTodayUseCase,
 		garbageTomorrowUseCase,

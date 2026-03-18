@@ -6,6 +6,7 @@ export type Note = {
   body: string
   author: string
   pinned: boolean
+  acknowledged: boolean
   done: boolean
   created_at: string
   updated_at: string
@@ -105,6 +106,13 @@ export async function updateNotePin(id: number, pinned: boolean): Promise<Note> 
   return requestJSON<Note>(`/api/v1/notes/${id}/pin`, {
     method: 'PATCH',
     body: JSON.stringify({ pinned })
+  })
+}
+
+export async function updateNoteAcknowledged(id: number, acknowledged: boolean): Promise<Note> {
+  return requestJSON<Note>(`/api/v1/notes/${id}/ack`, {
+    method: 'PATCH',
+    body: JSON.stringify({ acknowledged })
   })
 }
 

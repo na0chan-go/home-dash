@@ -33,5 +33,6 @@ type NotesRepository interface {
 	Create(ctx context.Context, params CreateNoteParams) (notes.Note, error)
 	Delete(ctx context.Context, id int64) (bool, error)
 	SetPinned(ctx context.Context, id int64, pinned bool) (notes.Note, bool, error)
+	SetAcknowledged(ctx context.Context, id int64, acknowledged bool) (notes.Note, bool, error)
 	SetDone(ctx context.Context, id int64, done bool) (notes.Note, bool, error)
 }

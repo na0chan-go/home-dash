@@ -80,14 +80,15 @@ func toNoteDTOs(notes []domainnotes.Note) []NoteDTO {
 	out := make([]NoteDTO, 0, len(notes))
 	for _, n := range notes {
 		out = append(out, NoteDTO{
-			ID:        n.ID,
-			Kind:      string(n.Kind),
-			Body:      n.Body,
-			Author:    n.Author,
-			Pinned:    n.Pinned,
-			Done:      n.Done,
-			CreatedAt: n.CreatedAt.Format(timestampLayout),
-			UpdatedAt: n.UpdatedAt.Format(timestampLayout),
+			ID:           n.ID,
+			Kind:         string(n.Kind),
+			Body:         n.Body,
+			Author:       n.Author,
+			Pinned:       n.Pinned,
+			Acknowledged: n.Acknowledged,
+			Done:         n.Done,
+			CreatedAt:    n.CreatedAt.Format(timestampLayout),
+			UpdatedAt:    n.UpdatedAt.Format(timestampLayout),
 		})
 	}
 	return out

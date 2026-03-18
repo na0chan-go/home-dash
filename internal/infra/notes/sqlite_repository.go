@@ -21,7 +21,7 @@ func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
 
 func (r *SQLiteRepository) List(ctx context.Context, params ports.ListNotesParams) ([]domainnotes.Note, error) {
 	query := `
-		SELECT id, kind, body, author, pinned, done, created_at, updated_at
+		SELECT id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
 		FROM notes
 	`
 	args := make([]any, 0, 2)
@@ -58,7 +58,7 @@ func (r *SQLiteRepository) Create(ctx context.Context, params ports.CreateNotePa
 	row := r.db.QueryRowContext(ctx, `
 		INSERT INTO notes(kind, body, author, pinned, done)
 		VALUES (?, ?, ?, ?, ?)
-		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
+		RETURNING id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
 	`, string(params.Kind), params.Body, params.Author, params.Pinned, params.Done)
 
 	note, err := scanNote(row)
@@ -101,12 +101,43 @@ func (r *SQLiteRepository) SetPinned(ctx context.Context, id int64, pinned bool)
 		UPDATE notes
 		SET pinned = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
 		WHERE id = ?
-		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
+		RETURNING id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
 	`, pinned, id)
 
 	note, err := scanNote(row)
 	if err != nil {
 		return domainnotes.Note{}, false, fmt.Errorf("failed to set pin: %w", err)
+	}
+	return note, true, nil
+}
+
+func (r *SQLiteRepository) SetAcknowledged(ctx context.Context, id int64, acknowledged bool) (domainnotes.Note, bool, error) {
+	var kind string
+	if err := r.db.QueryRowContext(ctx, `SELECT kind FROM notes WHERE id = ?`, id).Scan(&kind); err != nil {
+		if err == sql.ErrNoRows {
+			return domainnotes.Note{}, false, nil
+		}
+		return domainnotes.Note{}, false, fmt.Errorf("failed to find note for set acknowledged: %w", err)
+	}
+
+	if kind != string(domainnotes.KindNotice) {
+		note, err := r.findByID(ctx, id)
+		if err != nil {
+			return domainnotes.Note{}, false, err
+		}
+		return note, true, nil
+	}
+
+	row := r.db.QueryRowContext(ctx, `
+		UPDATE notes
+		SET acknowledged = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
+		WHERE id = ?
+		RETURNING id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
+	`, acknowledged, id)
+
+	note, err := scanNote(row)
+	if err != nil {
+		return domainnotes.Note{}, false, fmt.Errorf("failed to set acknowledged: %w", err)
 	}
 	return note, true, nil
 }
@@ -132,7 +163,7 @@ func (r *SQLiteRepository) SetDone(ctx context.Context, id int64, done bool) (do
 		UPDATE notes
 		SET done = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
 		WHERE id = ?
-		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
+		RETURNING id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
 	`, done, id)
 
 	note, err := scanNote(row)
@@ -144,7 +175,7 @@ func (r *SQLiteRepository) SetDone(ctx context.Context, id int64, done bool) (do
 
 func (r *SQLiteRepository) findByID(ctx context.Context, id int64) (domainnotes.Note, error) {
 	row := r.db.QueryRowContext(ctx, `
-		SELECT id, kind, body, author, pinned, done, created_at, updated_at
+		SELECT id, kind, body, author, pinned, acknowledged, done, created_at, updated_at
 		FROM notes
 		WHERE id = ?
 	`, id)
@@ -158,7 +189,7 @@ func (r *SQLiteRepository) findByID(ctx context.Context, id int64) (domainnotes.
 func buildOrderBy(order ports.NoteOrder) string {
 	switch order {
 	case ports.NoteOrderNotice:
-		return "pinned DESC, created_at DESC"
+		return "pinned DESC, acknowledged ASC, created_at DESC"
 	case ports.NoteOrderShopping:
 		return "done ASC, created_at DESC"
 	default:
@@ -182,6 +213,7 @@ func scanNote(scanner noteScanner) (domainnotes.Note, error) {
 		&note.Body,
 		&note.Author,
 		&note.Pinned,
+		&note.Acknowledged,
 		&note.Done,
 		&createdAtRaw,
 		&updatedAtRaw,

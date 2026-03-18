@@ -16,6 +16,7 @@ func NewRouter(
 	addNoteUseCase *usenotes.AddNoteUseCase,
 	deleteNoteUseCase *usenotes.DeleteNoteUseCase,
 	setPinUseCase *usenotes.SetPinUseCase,
+	setAckUseCase *usenotes.SetAcknowledgedUseCase,
 	setDoneUseCase *usenotes.SetDoneUseCase,
 	garbageTodayUseCase *usegarbage.GetTodayUseCase,
 	garbageTomorrowUseCase *usegarbage.GetTomorrowUseCase,
@@ -29,7 +30,7 @@ func NewRouter(
 ) http.Handler {
 	mux := http.NewServeMux()
 	healthHandler := NewHealthHandler(healthUseCase)
-	notesHandler := NewNotesHandler(listNotesUseCase, addNoteUseCase, deleteNoteUseCase, setPinUseCase, setDoneUseCase)
+	notesHandler := NewNotesHandler(listNotesUseCase, addNoteUseCase, deleteNoteUseCase, setPinUseCase, setAckUseCase, setDoneUseCase)
 	garbageHandler := NewGarbageHandler(garbageTodayUseCase, garbageTomorrowUseCase, garbageSummaryUseCase)
 	dashboardHandler := NewDashboardHandler(dashboardUseCase)
 	statusHandler := NewStatusHandler(statusUseCase)
