@@ -297,10 +297,10 @@ async function confirmDelete(): Promise<void> {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   border: 2px solid currentColor;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
