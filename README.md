@@ -335,6 +335,8 @@ GitHub Actions で以下をチェックします。
 - 開発ルール: `AGENT.md`
 - アーキテクチャ概要: `docs/ARCHITECTURE.md`
 - リリース手順: `docs/RELEASE.md`
+- 更新手順: `docs/UPDATE.md`
+- `AUTH_TOKEN` 未設定時の更新は `docs/UPDATE.md` の「`AUTH_TOKEN` を使わない場合」を参照してください
 - 変更履歴: `CHANGELOG.md`
 - 運用ログ（日次1分）: `docs/OPS_LOG.md`
 - 週次トリアージ手順: `docs/TRIAGE.md`
