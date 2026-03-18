@@ -169,25 +169,26 @@ async function confirmDelete(): Promise<void> {
           <span class="notice-author-chip">{{ authorLabel(note) }}</span>
           <span class="hd-list-body">{{ note.body }}</span>
         </div>
-        <button
-          class="hd-btn hd-btn-small"
-          type="button"
-          :disabled="isPending(note.id)"
-          @click="onToggleAcknowledged(note)"
-        >
-          {{ note.acknowledged ? '確認解除' : '確認済み' }}
-        </button>
-        <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
-          {{ note.pinned ? 'ピン解除' : 'ピン' }}
-        </button>
-        <button
-          class="hd-btn hd-btn-small hd-btn-danger"
-          type="button"
-          :disabled="isPending(note.id)"
-          @click="requestDelete(note)"
-        >
-          削除
-        </button>
+        <div class="notice-actions">
+          <button
+            :class="['hd-btn', 'hd-btn-small', 'notice-icon-button', { 'is-active': note.acknowledged }]"
+            type="button"
+            :disabled="isPending(note.id)"
+            :aria-label="note.acknowledged ? '確認解除' : '確認済みにする'"
+            @click="onToggleAcknowledged(note)"
+          />
+          <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
+            {{ note.pinned ? 'ピン解除' : 'ピン' }}
+          </button>
+          <button
+            class="hd-btn hd-btn-small hd-btn-danger"
+            type="button"
+            :disabled="isPending(note.id)"
+            @click="requestDelete(note)"
+          >
+            削除
+          </button>
+        </div>
       </li>
     </ul>
     <p v-else class="hd-empty">連絡はありません</p>
@@ -222,6 +223,10 @@ async function confirmDelete(): Promise<void> {
   opacity: 0.82;
 }
 
+.notice-board .hd-list-item {
+  align-items: flex-start;
+}
+
 .notice-author-field {
   display: grid;
   grid-column: 1 / -1;
@@ -254,8 +259,65 @@ async function confirmDelete(): Promise<void> {
 }
 
 .notice-content {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 8px;
+}
+
+.notice-board .hd-list-body {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.notice-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.notice-icon-button {
+  position: relative;
+  min-width: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.notice-icon-button::before,
+.notice-icon-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.notice-icon-button::before {
+  width: 17px;
+  height: 17px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  transform: translate(-50%, -50%);
+}
+
+.notice-icon-button::after {
+  width: 7px;
+  height: 12px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  opacity: 0;
+  transform: translate(-50%, -58%) rotate(45deg);
+}
+
+.notice-icon-button.is-active {
+  border-color: #2559c0;
+  background: #2f6ce5;
+  color: #ffffff;
+}
+
+.notice-icon-button.is-active::after {
+  opacity: 1;
 }
 
 .notice-author-chip {
@@ -278,6 +340,11 @@ async function confirmDelete(): Promise<void> {
 
   .notice-board .hd-composer .hd-btn-primary {
     width: 100%;
+  }
+
+  .notice-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>
