@@ -38,6 +38,7 @@ type ListNotesInput struct {
 type AddNoteInput struct {
 	Kind   string
 	Body   string
+	Author string
 	Pinned bool
 	Done   bool
 }
@@ -123,11 +124,16 @@ func (u *AddNoteUseCase) Execute(ctx context.Context, input AddNoteInput) (NoteD
 	if err != nil {
 		return NoteDTO{}, err
 	}
+	author, err := validateAndNormalizeAuthor(kind, input.Author)
+	if err != nil {
+		return NoteDTO{}, err
+	}
 
 	pinned, done := normalizeFlags(kind, input.Pinned, input.Done)
 	note, err := u.repo.Create(ctx, ports.CreateNoteParams{
 		Kind:   kind,
 		Body:   body,
+		Author: author,
 		Pinned: pinned,
 		Done:   done,
 	})
@@ -195,6 +201,18 @@ func validateAndNormalizeBody(body string) (string, error) {
 	return normalized, nil
 }
 
+func validateAndNormalizeAuthor(kind domainnotes.Kind, author string) (string, error) {
+	if kind != domainnotes.KindNotice {
+		return "", nil
+	}
+
+	normalized := strings.TrimSpace(author)
+	if utf8.RuneCountInString(normalized) > 20 {
+		return "", ErrAuthorTooLong
+	}
+	return normalized, nil
+}
+
 func normalizeFlags(kind domainnotes.Kind, pinned bool, done bool) (bool, bool) {
 	switch kind {
 	case domainnotes.KindNotice:
@@ -211,6 +229,7 @@ func toDTO(note domainnotes.Note) NoteDTO {
 		ID:        note.ID,
 		Kind:      string(note.Kind),
 		Body:      note.Body,
+		Author:    note.Author,
 		Pinned:    note.Pinned,
 		Done:      note.Done,
 		CreatedAt: note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -222,6 +241,7 @@ func IsUserError(err error) bool {
 	return errors.Is(err, ErrInvalidKind) ||
 		errors.Is(err, ErrBodyRequired) ||
 		errors.Is(err, ErrBodyTooLong) ||
+		errors.Is(err, ErrAuthorTooLong) ||
 		errors.Is(err, ErrInvalidLimit) ||
 		errors.Is(err, ErrKindDoesNotSupportPin) ||
 		errors.Is(err, ErrKindDoesNotSupportDone)

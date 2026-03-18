@@ -21,6 +21,7 @@ type NotesHandler struct {
 type createNoteRequest struct {
 	Kind   string `json:"kind"`
 	Body   string `json:"body"`
+	Author string `json:"author"`
 	Pinned bool   `json:"pinned"`
 	Done   bool   `json:"done"`
 }
@@ -116,6 +117,7 @@ func (h *NotesHandler) create(w http.ResponseWriter, r *http.Request) {
 	result, err := h.addUseCase.Execute(r.Context(), usenotes.AddNoteInput{
 		Kind:   req.Kind,
 		Body:   req.Body,
+		Author: req.Author,
 		Pinned: req.Pinned,
 		Done:   req.Done,
 	})

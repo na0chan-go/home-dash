@@ -74,6 +74,7 @@ func TestGetDashboardUseCase_CollectsNotesAndGarbage(t *testing.T) {
 			ID:        1,
 			Kind:      domainnotes.KindNotice,
 			Body:      "連絡",
+			Author:    "妻",
 			Pinned:    true,
 			Done:      false,
 			CreatedAt: time.Date(2026, 3, 4, 9, 0, 0, 0, time.UTC),
@@ -111,6 +112,9 @@ func TestGetDashboardUseCase_CollectsNotesAndGarbage(t *testing.T) {
 	}
 	if len(got.Notes.Notice) != 1 || len(got.Notes.Shopping) != 1 {
 		t.Fatalf("unexpected notes count: notice=%d shopping=%d", len(got.Notes.Notice), len(got.Notes.Shopping))
+	}
+	if got.Notes.Notice[0].Author != "妻" {
+		t.Fatalf("unexpected notice author: %s", got.Notes.Notice[0].Author)
 	}
 	if got.Garbage.Today.Label != "なし" {
 		t.Fatalf("unexpected today label: %s", got.Garbage.Today.Label)

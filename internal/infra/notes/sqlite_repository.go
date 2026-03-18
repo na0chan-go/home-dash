@@ -21,7 +21,7 @@ func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
 
 func (r *SQLiteRepository) List(ctx context.Context, params ports.ListNotesParams) ([]domainnotes.Note, error) {
 	query := `
-		SELECT id, kind, body, pinned, done, created_at, updated_at
+		SELECT id, kind, body, author, pinned, done, created_at, updated_at
 		FROM notes
 	`
 	args := make([]any, 0, 2)
@@ -56,10 +56,10 @@ func (r *SQLiteRepository) List(ctx context.Context, params ports.ListNotesParam
 
 func (r *SQLiteRepository) Create(ctx context.Context, params ports.CreateNoteParams) (domainnotes.Note, error) {
 	row := r.db.QueryRowContext(ctx, `
-		INSERT INTO notes(kind, body, pinned, done)
-		VALUES (?, ?, ?, ?)
-		RETURNING id, kind, body, pinned, done, created_at, updated_at
-	`, string(params.Kind), params.Body, params.Pinned, params.Done)
+		INSERT INTO notes(kind, body, author, pinned, done)
+		VALUES (?, ?, ?, ?, ?)
+		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
+	`, string(params.Kind), params.Body, params.Author, params.Pinned, params.Done)
 
 	note, err := scanNote(row)
 	if err != nil {
@@ -101,7 +101,7 @@ func (r *SQLiteRepository) SetPinned(ctx context.Context, id int64, pinned bool)
 		UPDATE notes
 		SET pinned = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
 		WHERE id = ?
-		RETURNING id, kind, body, pinned, done, created_at, updated_at
+		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
 	`, pinned, id)
 
 	note, err := scanNote(row)
@@ -132,7 +132,7 @@ func (r *SQLiteRepository) SetDone(ctx context.Context, id int64, done bool) (do
 		UPDATE notes
 		SET done = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
 		WHERE id = ?
-		RETURNING id, kind, body, pinned, done, created_at, updated_at
+		RETURNING id, kind, body, author, pinned, done, created_at, updated_at
 	`, done, id)
 
 	note, err := scanNote(row)
@@ -144,7 +144,7 @@ func (r *SQLiteRepository) SetDone(ctx context.Context, id int64, done bool) (do
 
 func (r *SQLiteRepository) findByID(ctx context.Context, id int64) (domainnotes.Note, error) {
 	row := r.db.QueryRowContext(ctx, `
-		SELECT id, kind, body, pinned, done, created_at, updated_at
+		SELECT id, kind, body, author, pinned, done, created_at, updated_at
 		FROM notes
 		WHERE id = ?
 	`, id)
@@ -180,6 +180,7 @@ func scanNote(scanner noteScanner) (domainnotes.Note, error) {
 		&note.ID,
 		&rawKind,
 		&note.Body,
+		&note.Author,
 		&note.Pinned,
 		&note.Done,
 		&createdAtRaw,
