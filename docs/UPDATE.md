@@ -106,7 +106,7 @@ docker compose up --build -d
 `AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。`.env` に `AUTH_TOKEN` を書いている場合も自動で読み取ります。  
 `AUTH_TOKEN` を使わない場合は、アプリ停止後に `DB_PATH`（`.env` の設定も含む）に対応する DB ファイルを退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
 
-必要に応じて `APP_URL`、待機回数、待機秒数、`.env` のパスを上書きできます。
+必要に応じて `APP_URL`、待機回数、待機秒数、`.env` のパスを上書きできます。`ENV_FILE` を指定した場合は、スクリプト内の `docker compose` も同じ env file を使います。
 
 ```bash
 APP_URL=http://localhost:8080 WAIT_RETRIES=12 WAIT_SECONDS=5 AUTH_TOKEN=<token> ./scripts/update.sh

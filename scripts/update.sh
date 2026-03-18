@@ -5,6 +5,8 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 APP_URL=${APP_URL:-http://localhost:8080}
 AUTH_TOKEN=${AUTH_TOKEN:-}
+DB_PATH_VALUE=${DB_PATH-}
+DB_PATH_IS_SET=${DB_PATH+1}
 WAIT_RETRIES=${WAIT_RETRIES:-12}
 WAIT_SECONDS=${WAIT_SECONDS:-5}
 DATA_DIR=${DATA_DIR:-"$ROOT_DIR/data"}
@@ -63,8 +65,13 @@ resolve_auth_token() {
 }
 
 resolve_container_db_path() {
-  if [ -n "${DB_PATH:-}" ]; then
-    printf '%s\n' "$DB_PATH"
+  if [ -n "$DB_PATH_IS_SET" ]; then
+    if [ -n "$DB_PATH_VALUE" ]; then
+      printf '%s\n' "$DB_PATH_VALUE"
+      return 0
+    fi
+
+    printf '%s\n' "/data/app.db"
     return 0
   fi
 
@@ -83,8 +90,11 @@ resolve_host_db_path() {
     /data/*)
       printf '%s/%s\n' "$DATA_DIR" "${container_db_path#/data/}"
       ;;
-    *)
+    /*)
       printf '%s\n' "$container_db_path"
+      ;;
+    *)
+      printf '%s/%s\n' "$ROOT_DIR" "$container_db_path"
       ;;
   esac
 }
@@ -92,7 +102,7 @@ resolve_host_db_path() {
 docker_compose() {
   (
     cd "$ROOT_DIR"
-    docker compose "$@"
+    docker compose --env-file "$ENV_FILE" "$@"
   )
 }
 

@@ -12,7 +12,16 @@ mkdir -p "$FAKEBIN"
 cat <<'EOF' > "$FAKEBIN/docker"
 #!/bin/sh
 echo "PWD=$PWD docker $*" >> "$TEST_LOG"
-if [ "${DOCKER_FAIL:-0}" = "1" ] && [ "$1" = "compose" ] && [ "$2" = "stop" ] && [ "$3" = "app" ]; then
+command_name=""
+command_target=""
+if [ "$1" = "compose" ] && [ "$2" = "--env-file" ]; then
+  command_name=$4
+  command_target=$5
+elif [ "$1" = "compose" ]; then
+  command_name=$2
+  command_target=$3
+fi
+if [ "${DOCKER_FAIL:-0}" = "1" ] && [ "$command_name" = "stop" ] && [ "$command_target" = "app" ]; then
   exit 1
 fi
 exit 0
@@ -82,7 +91,8 @@ run_script() {
     WAIT_SECONDS=0 \
     DATA_DIR="$2/data" \
     BACKUP_DIR="$2/data/backups" \
-    DB_PATH="$2/data/app.db" \
+    DB_PATH="${5:-$2/data/app.db}" \
+    ENV_FILE="${6:-$ROOT_DIR/.env}" \
     AUTH_TOKEN="${3:-}" \
     sh "$ROOT_DIR/scripts/update.sh"
 }
@@ -109,7 +119,7 @@ test_token_mode() {
 
   assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/status"
-  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose up --build -d"
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose --env-file $ROOT_DIR/.env up --build -d"
 }
 
 test_noauth_mode() {
@@ -121,7 +131,7 @@ test_noauth_mode() {
 
   run_script noauth "$case_dir" > "$case_dir/stdout"
 
-  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose stop app"
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose --env-file $ROOT_DIR/.env stop app"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/dashboard"
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
@@ -225,13 +235,13 @@ test_env_auth_token_mode() {
     WAIT_SECONDS=0 \
     DATA_DIR="$case_dir/data" \
     BACKUP_DIR="$case_dir/data/backups" \
-    DB_PATH="$case_dir/data/app.db" \
     ENV_FILE="$env_file" \
     AUTH_TOKEN="" \
     sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
 
   assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/status"
+  assert_contains "$case_dir/log" "docker compose --env-file $env_file up --build -d"
 }
 
 test_env_db_path_mode() {
@@ -239,6 +249,53 @@ test_env_db_path_mode() {
   case_dir="$TEST_TMPDIR/envdb"
   mkdir -p "$case_dir/data/backups" "$case_dir/data/custom"
   printf 'db' > "$case_dir/data/custom/alt.db"
+  TEST_LOG="$case_dir/log"
+  env_file="$case_dir/.env"
+  printf 'DB_PATH=/data/custom/alt.db\n' > "$env_file"
+
+  PATH="$FAKEBIN:$PATH" \
+    TEST_LOG="$TEST_LOG" \
+    TEST_MODE=noauth \
+    WAIT_RETRIES=1 \
+    WAIT_SECONDS=0 \
+    DATA_DIR="$case_dir/data" \
+    BACKUP_DIR="$case_dir/data/backups" \
+    ENV_FILE="$env_file" \
+    AUTH_TOKEN="" \
+    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+
+  ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
+}
+
+test_env_relative_db_path_mode() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/envrel"
+  mkdir -p "$case_dir/data/backups" "$ROOT_DIR/tmp"
+  printf 'db' > "$ROOT_DIR/tmp/rel.db"
+  TEST_LOG="$case_dir/log"
+  env_file="$case_dir/.env"
+  printf 'DB_PATH=tmp/rel.db\n' > "$env_file"
+
+  PATH="$FAKEBIN:$PATH" \
+    TEST_LOG="$TEST_LOG" \
+    TEST_MODE=noauth \
+    WAIT_RETRIES=1 \
+    WAIT_SECONDS=0 \
+    DATA_DIR="$case_dir/data" \
+    BACKUP_DIR="$case_dir/data/backups" \
+    ENV_FILE="$env_file" \
+    AUTH_TOKEN="" \
+    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+
+  ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
+  rm -f "$ROOT_DIR/tmp/rel.db"
+}
+
+test_explicit_empty_db_path_uses_default() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/emptydb"
+  mkdir -p "$case_dir/data/backups"
+  printf 'db' > "$case_dir/data/app.db"
   TEST_LOG="$case_dir/log"
   env_file="$case_dir/.env"
   printf 'DB_PATH=/data/custom/alt.db\n' > "$env_file"
@@ -265,5 +322,7 @@ test_partial_status_body_fails
 test_stop_failure_fails
 test_env_auth_token_mode
 test_env_db_path_mode
+test_env_relative_db_path_mode
+test_explicit_empty_db_path_uses_default
 
 echo "update.sh tests passed"
