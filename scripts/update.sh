@@ -4,7 +4,8 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 APP_URL=${APP_URL:-http://localhost:8080}
-AUTH_TOKEN=${AUTH_TOKEN:-}
+AUTH_TOKEN_VALUE=${AUTH_TOKEN-}
+AUTH_TOKEN_IS_SET=${AUTH_TOKEN+1}
 DB_PATH_VALUE=${DB_PATH-}
 DB_PATH_IS_SET=${DB_PATH+1}
 WAIT_RETRIES=${WAIT_RETRIES:-12}
@@ -71,8 +72,8 @@ load_env_value_from_env_file() {
 }
 
 resolve_auth_token() {
-  if [ -n "$AUTH_TOKEN" ]; then
-    printf '%s\n' "$AUTH_TOKEN"
+  if [ -n "$AUTH_TOKEN_IS_SET" ]; then
+    printf '%s\n' "$AUTH_TOKEN_VALUE"
     return 0
   fi
 

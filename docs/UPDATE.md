@@ -103,8 +103,8 @@ docker compose up --build -d
 ./scripts/update.sh
 ```
 
-`AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。`.env` に `AUTH_TOKEN` を書いている場合も自動で読み取ります。  
-`AUTH_TOKEN` を使わない場合は、アプリ停止後に `DB_PATH`（`.env` の設定も含む）に対応する DB ファイルを退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
+`AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。`.env` に `AUTH_TOKEN` を書いている場合も自動で読み取ります。`AUTH_TOKEN="" ./scripts/update.sh` のように空文字で上書きすると、`.env` の値よりもシェル側を優先して認証なしとして扱います。  
+`AUTH_TOKEN` を使わない場合は、アプリ停止後に `DB_PATH`（`.env` の設定も含む）に対応する DB ファイルを退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。更新前バックアップをホスト側で安全に作れるのは `DB_PATH` が `/data` 配下のときだけです。
 
 必要に応じて `APP_URL`、待機回数、待機秒数、`.env` のパスを上書きできます。`ENV_FILE` を指定した場合は、スクリプト内の `docker compose` も同じ env file を使います。
 

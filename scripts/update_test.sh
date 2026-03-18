@@ -83,17 +83,56 @@ chmod +x "$FAKEBIN/curl"
 write_default_fake_curl
 
 run_script() {
-  PATH="$FAKEBIN:$PATH" \
+  mode=$1
+  case_dir=$2
+  auth_mode=${3:-unset}
+  docker_fail=${4:-0}
+  db_path=${5:-/data/app.db}
+  env_file=${6:-$ROOT_DIR/.env}
+
+  if [ "$auth_mode" = "__EMPTY__" ]; then
+    env AUTH_TOKEN="" \
+      PATH="$FAKEBIN:$PATH" \
+      TEST_LOG="$TEST_LOG" \
+      TEST_MODE="$mode" \
+      DOCKER_FAIL="$docker_fail" \
+      WAIT_RETRIES=1 \
+      WAIT_SECONDS=0 \
+      DATA_DIR="$case_dir/data" \
+      BACKUP_DIR="$case_dir/data/backups" \
+      DB_PATH="$db_path" \
+      ENV_FILE="$env_file" \
+      sh "$ROOT_DIR/scripts/update.sh"
+    return
+  fi
+
+  if [ "$auth_mode" = "unset" ]; then
+    env -u AUTH_TOKEN \
+      PATH="$FAKEBIN:$PATH" \
+      TEST_LOG="$TEST_LOG" \
+      TEST_MODE="$mode" \
+      DOCKER_FAIL="$docker_fail" \
+      WAIT_RETRIES=1 \
+      WAIT_SECONDS=0 \
+      DATA_DIR="$case_dir/data" \
+      BACKUP_DIR="$case_dir/data/backups" \
+      DB_PATH="$db_path" \
+      ENV_FILE="$env_file" \
+      sh "$ROOT_DIR/scripts/update.sh"
+    return
+  fi
+
+  env AUTH_TOKEN="$auth_mode" \
+    PATH="$FAKEBIN:$PATH" \
     TEST_LOG="$TEST_LOG" \
-    TEST_MODE="$1" \
-    DOCKER_FAIL="${4:-0}" \
+    TEST_MODE="$mode" \
+    DOCKER_FAIL="$docker_fail" \
     WAIT_RETRIES=1 \
     WAIT_SECONDS=0 \
-    DATA_DIR="$2/data" \
-    BACKUP_DIR="$2/data/backups" \
-    DB_PATH="${5:-/data/app.db}" \
-    ENV_FILE="${6:-$ROOT_DIR/.env}" \
-    AUTH_TOKEN="${3:-}" \
+    DATA_DIR="$case_dir/data" \
+    BACKUP_DIR="$case_dir/data/backups" \
+    DB_PATH="$db_path" \
+    ENV_FILE="$env_file" \
     sh "$ROOT_DIR/scripts/update.sh"
 }
 
@@ -129,7 +168,7 @@ test_noauth_mode() {
   printf 'db' > "$case_dir/data/app.db"
   TEST_LOG="$case_dir/log"
 
-  run_script noauth "$case_dir" > "$case_dir/stdout"
+  run_script noauth "$case_dir" unset > "$case_dir/stdout"
 
   assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose stop app"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
@@ -213,7 +252,7 @@ test_stop_failure_fails() {
   printf 'db' > "$case_dir/data/app.db"
   TEST_LOG="$case_dir/log"
 
-  if run_script noauth "$case_dir" "" 1 > "$case_dir/stdout" 2>"$case_dir/stderr"; then
+  if run_script noauth "$case_dir" unset 1 > "$case_dir/stdout" 2>"$case_dir/stderr"; then
     echo "expected stop failure run to fail" >&2
     exit 1
   fi
@@ -228,20 +267,27 @@ test_env_auth_token_mode() {
   env_file="$case_dir/.env"
   printf 'AUTH_TOKEN=from-env\n' > "$env_file"
 
-  PATH="$FAKEBIN:$PATH" \
-    TEST_LOG="$TEST_LOG" \
-    TEST_MODE=token \
-    WAIT_RETRIES=1 \
-    WAIT_SECONDS=0 \
-    DATA_DIR="$case_dir/data" \
-    BACKUP_DIR="$case_dir/data/backups" \
-    ENV_FILE="$env_file" \
-    AUTH_TOKEN="" \
-    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+  run_script token "$case_dir" unset 0 /data/app.db "$env_file" > "$case_dir/stdout"
 
   assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/status"
   assert_contains "$case_dir/log" "docker compose --env-file $env_file up --build -d"
+}
+
+test_explicit_empty_auth_token_overrides_env() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/emptyauth"
+  mkdir -p "$case_dir/data/backups"
+  printf 'db' > "$case_dir/data/app.db"
+  TEST_LOG="$case_dir/log"
+  env_file="$case_dir/.env"
+  printf 'AUTH_TOKEN=from-env\n' > "$env_file"
+
+  run_script noauth "$case_dir" __EMPTY__ 0 /data/app.db "$env_file" > "$case_dir/stdout"
+
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose --env-file $env_file stop app"
+  assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
+  assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/dashboard"
 }
 
 test_env_db_path_mode() {
@@ -261,8 +307,7 @@ test_env_db_path_mode() {
     DATA_DIR="$case_dir/data" \
     BACKUP_DIR="$case_dir/data/backups" \
     ENV_FILE="$env_file" \
-    AUTH_TOKEN="" \
-    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+    env -u AUTH_TOKEN sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
 
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
 }
@@ -283,8 +328,7 @@ test_env_relative_db_path_mode() {
     DATA_DIR="$case_dir/data" \
     BACKUP_DIR="$case_dir/data/backups" \
     ENV_FILE="$env_file" \
-    AUTH_TOKEN="" \
-    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout" 2>"$case_dir/stderr" && {
+    env -u AUTH_TOKEN sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout" 2>"$case_dir/stderr" && {
       echo "expected relative db path run to fail" >&2
       exit 1
     }
@@ -309,9 +353,8 @@ test_explicit_empty_db_path_uses_default() {
     DATA_DIR="$case_dir/data" \
     BACKUP_DIR="$case_dir/data/backups" \
     ENV_FILE="$env_file" \
-    AUTH_TOKEN="" \
     DB_PATH="" \
-    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+    env -u AUTH_TOKEN sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
 
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
 }
@@ -334,8 +377,7 @@ test_relative_env_file_mode() {
       DATA_DIR="$case_dir/data" \
       BACKUP_DIR="$case_dir/data/backups" \
       ENV_FILE=.env.production \
-      AUTH_TOKEN="" \
-      sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+      env -u AUTH_TOKEN sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
   )
 
   assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
@@ -361,6 +403,7 @@ test_degraded_status_fails
 test_partial_status_body_fails
 test_stop_failure_fails
 test_env_auth_token_mode
+test_explicit_empty_auth_token_overrides_env
 test_env_db_path_mode
 test_env_relative_db_path_mode
 test_explicit_empty_db_path_uses_default
