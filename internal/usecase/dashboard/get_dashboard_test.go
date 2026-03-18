@@ -52,6 +52,10 @@ func (r *stubNotesRepo) SetPinned(context.Context, int64, bool) (domainnotes.Not
 	return domainnotes.Note{}, false, nil
 }
 
+func (r *stubNotesRepo) SetAcknowledged(context.Context, int64, bool) (domainnotes.Note, bool, error) {
+	return domainnotes.Note{}, false, nil
+}
+
 func (r *stubNotesRepo) SetDone(context.Context, int64, bool) (domainnotes.Note, bool, error) {
 	return domainnotes.Note{}, false, nil
 }
@@ -71,14 +75,15 @@ func (p *stubGarbageProvider) GetSchedule(context.Context) (domaingarbage.Schedu
 func TestGetDashboardUseCase_CollectsNotesAndGarbage(t *testing.T) {
 	notesRepo := &stubNotesRepo{
 		notice: []domainnotes.Note{{
-			ID:        1,
-			Kind:      domainnotes.KindNotice,
-			Body:      "連絡",
-			Author:    "妻",
-			Pinned:    true,
-			Done:      false,
-			CreatedAt: time.Date(2026, 3, 4, 9, 0, 0, 0, time.UTC),
-			UpdatedAt: time.Date(2026, 3, 4, 9, 0, 0, 0, time.UTC),
+			ID:           1,
+			Kind:         domainnotes.KindNotice,
+			Body:         "連絡",
+			Author:       "妻",
+			Pinned:       true,
+			Acknowledged: false,
+			Done:         false,
+			CreatedAt:    time.Date(2026, 3, 4, 9, 0, 0, 0, time.UTC),
+			UpdatedAt:    time.Date(2026, 3, 4, 9, 0, 0, 0, time.UTC),
 		}},
 		shopping: []domainnotes.Note{{
 			ID:        2,
@@ -115,6 +120,9 @@ func TestGetDashboardUseCase_CollectsNotesAndGarbage(t *testing.T) {
 	}
 	if got.Notes.Notice[0].Author != "妻" {
 		t.Fatalf("unexpected notice author: %s", got.Notes.Notice[0].Author)
+	}
+	if got.Notes.Notice[0].Acknowledged {
+		t.Fatal("expected notice to remain unacknowledged")
 	}
 	if got.Garbage.Today.Label != "なし" {
 		t.Fatalf("unexpected today label: %s", got.Garbage.Today.Label)

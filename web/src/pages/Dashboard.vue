@@ -12,6 +12,7 @@ import {
   type DashboardResponse,
   type Note,
   type NoteKind,
+  updateNoteAcknowledged,
   updateNoteDone,
   updateNotePin
 } from '../api/client'
@@ -202,6 +203,9 @@ function sortNotice(items: Note[]): Note[] {
     if (a.pinned !== b.pinned) {
       return Number(b.pinned) - Number(a.pinned)
     }
+    if (a.acknowledged !== b.acknowledged) {
+      return Number(a.acknowledged) - Number(b.acknowledged)
+    }
     return dateDesc(a.created_at, b.created_at)
   })
 }
@@ -325,6 +329,7 @@ async function handleAddNote(kind: NoteKind, body: string, author = ''): Promise
     body,
     author: kind === 'notice' ? author : '',
     pinned: false,
+    acknowledged: false,
     done: false,
     created_at: nowISO,
     updated_at: nowISO
@@ -380,6 +385,38 @@ async function handleTogglePin(note: Note): Promise<void> {
         const target = dashboard.value?.notes.notice.find((item) => item.id === note.id)
         if (target) {
           target.pinned = updated.pinned
+          target.updated_at = updated.updated_at
+          sortNotice(dashboard.value!.notes.notice)
+        }
+      }
+    )
+  } finally {
+    replacePendingState(note.id, false)
+  }
+}
+
+async function handleToggleAcknowledged(note: Note): Promise<void> {
+  if (note.kind !== 'notice' || isPending(note.id)) {
+    return
+  }
+
+  const nextAcknowledged = !note.acknowledged
+  replacePendingState(note.id, true)
+  try {
+    await withOptimisticUpdate(
+      (state) => {
+        const target = state.notes.notice.find((item) => item.id === note.id)
+        if (!target) {
+          return
+        }
+        target.acknowledged = nextAcknowledged
+        sortNotice(state.notes.notice)
+      },
+      async () => {
+        const updated = await updateNoteAcknowledged(note.id, nextAcknowledged)
+        const target = dashboard.value?.notes.notice.find((item) => item.id === note.id)
+        if (target) {
+          target.acknowledged = updated.acknowledged
           target.updated_at = updated.updated_at
           sortNotice(dashboard.value!.notes.notice)
         }
@@ -564,6 +601,7 @@ onUnmounted(() => {
         :pending-ids="pendingIDs"
         :on-add="(body, author) => handleAddNote('notice', body, author)"
         :on-toggle-pin="handleTogglePin"
+        :on-toggle-acknowledged="handleToggleAcknowledged"
         :on-delete-note="handleDelete"
       />
       <ShoppingList

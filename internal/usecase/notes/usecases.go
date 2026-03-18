@@ -26,6 +26,10 @@ type SetPinUseCase struct {
 	repo ports.NotesRepository
 }
 
+type SetAcknowledgedUseCase struct {
+	repo ports.NotesRepository
+}
+
 type SetDoneUseCase struct {
 	repo ports.NotesRepository
 }
@@ -48,6 +52,11 @@ type SetPinInput struct {
 	Pinned bool
 }
 
+type SetAcknowledgedInput struct {
+	ID           int64
+	Acknowledged bool
+}
+
 type SetDoneInput struct {
 	ID   int64
 	Done bool
@@ -67,6 +76,10 @@ func NewDeleteNoteUseCase(repo ports.NotesRepository) *DeleteNoteUseCase {
 
 func NewSetPinUseCase(repo ports.NotesRepository) *SetPinUseCase {
 	return &SetPinUseCase{repo: repo}
+}
+
+func NewSetAcknowledgedUseCase(repo ports.NotesRepository) *SetAcknowledgedUseCase {
+	return &SetAcknowledgedUseCase{repo: repo}
 }
 
 func NewSetDoneUseCase(repo ports.NotesRepository) *SetDoneUseCase {
@@ -168,6 +181,20 @@ func (u *SetPinUseCase) Execute(ctx context.Context, input SetPinInput) (NoteDTO
 	return toDTO(note), nil
 }
 
+func (u *SetAcknowledgedUseCase) Execute(ctx context.Context, input SetAcknowledgedInput) (NoteDTO, error) {
+	note, found, err := u.repo.SetAcknowledged(ctx, input.ID, input.Acknowledged)
+	if err != nil {
+		return NoteDTO{}, err
+	}
+	if !found {
+		return NoteDTO{}, ErrNoteNotFound
+	}
+	if note.Kind != domainnotes.KindNotice {
+		return NoteDTO{}, ErrKindDoesNotSupportAcknowledged
+	}
+	return toDTO(note), nil
+}
+
 func (u *SetDoneUseCase) Execute(ctx context.Context, input SetDoneInput) (NoteDTO, error) {
 	note, found, err := u.repo.SetDone(ctx, input.ID, input.Done)
 	if err != nil {
@@ -226,14 +253,15 @@ func normalizeFlags(kind domainnotes.Kind, pinned bool, done bool) (bool, bool) 
 
 func toDTO(note domainnotes.Note) NoteDTO {
 	return NoteDTO{
-		ID:        note.ID,
-		Kind:      string(note.Kind),
-		Body:      note.Body,
-		Author:    note.Author,
-		Pinned:    note.Pinned,
-		Done:      note.Done,
-		CreatedAt: note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt: note.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           note.ID,
+		Kind:         string(note.Kind),
+		Body:         note.Body,
+		Author:       note.Author,
+		Pinned:       note.Pinned,
+		Acknowledged: note.Acknowledged,
+		Done:         note.Done,
+		CreatedAt:    note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:    note.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 
@@ -244,5 +272,6 @@ func IsUserError(err error) bool {
 		errors.Is(err, ErrAuthorTooLong) ||
 		errors.Is(err, ErrInvalidLimit) ||
 		errors.Is(err, ErrKindDoesNotSupportPin) ||
+		errors.Is(err, ErrKindDoesNotSupportAcknowledged) ||
 		errors.Is(err, ErrKindDoesNotSupportDone)
 }

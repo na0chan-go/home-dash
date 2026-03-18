@@ -15,6 +15,7 @@ type NotesHandler struct {
 	addUseCase     *usenotes.AddNoteUseCase
 	deleteUseCase  *usenotes.DeleteNoteUseCase
 	setPinUseCase  *usenotes.SetPinUseCase
+	setAckUseCase  *usenotes.SetAcknowledgedUseCase
 	setDoneUseCase *usenotes.SetDoneUseCase
 }
 
@@ -30,6 +31,10 @@ type setPinnedRequest struct {
 	Pinned *bool `json:"pinned"`
 }
 
+type setAcknowledgedRequest struct {
+	Acknowledged *bool `json:"acknowledged"`
+}
+
 type setDoneRequest struct {
 	Done *bool `json:"done"`
 }
@@ -43,6 +48,7 @@ func NewNotesHandler(
 	addUseCase *usenotes.AddNoteUseCase,
 	deleteUseCase *usenotes.DeleteNoteUseCase,
 	setPinUseCase *usenotes.SetPinUseCase,
+	setAckUseCase *usenotes.SetAcknowledgedUseCase,
 	setDoneUseCase *usenotes.SetDoneUseCase,
 ) *NotesHandler {
 	return &NotesHandler{
@@ -50,6 +56,7 @@ func NewNotesHandler(
 		addUseCase:     addUseCase,
 		deleteUseCase:  deleteUseCase,
 		setPinUseCase:  setPinUseCase,
+		setAckUseCase:  setAckUseCase,
 		setDoneUseCase: setDoneUseCase,
 	}
 }
@@ -77,6 +84,8 @@ func (h *NotesHandler) HandleByID(w http.ResponseWriter, r *http.Request) {
 		h.delete(w, r, id)
 	case r.Method == http.MethodPatch && action == "pin":
 		h.setPin(w, r, id)
+	case r.Method == http.MethodPatch && action == "ack":
+		h.setAcknowledged(w, r, id)
 	case r.Method == http.MethodPatch && action == "done":
 		h.setDone(w, r, id)
 	default:
@@ -157,6 +166,29 @@ func (h *NotesHandler) setPin(w http.ResponseWriter, r *http.Request, id int64) 
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (h *NotesHandler) setAcknowledged(w http.ResponseWriter, r *http.Request, id int64) {
+	var req setAcknowledgedRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "invalid request body")
+		return
+	}
+	if req.Acknowledged == nil {
+		writeError(w, r, http.StatusBadRequest, errorCodeValidation, "acknowledged is required")
+		return
+	}
+
+	result, err := h.setAckUseCase.Execute(r.Context(), usenotes.SetAcknowledgedInput{
+		ID:           id,
+		Acknowledged: *req.Acknowledged,
+	})
+	if err != nil {
+		h.handleUseCaseError(w, r, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (h *NotesHandler) setDone(w http.ResponseWriter, r *http.Request, id int64) {
 	var req setDoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -210,7 +242,7 @@ func parseIDPath(path string) (int64, string, bool) {
 	}
 
 	action := parts[1]
-	if action != "pin" && action != "done" {
+	if action != "pin" && action != "ack" && action != "done" {
 		return 0, "", false
 	}
 	return id, action, true

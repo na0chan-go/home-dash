@@ -17,6 +17,7 @@ function noticeNote(id: number, body: string): Note {
     body,
     author: '妻',
     pinned: false,
+    acknowledged: false,
     done: false,
     created_at: now,
     updated_at: now
@@ -37,6 +38,7 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd,
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote: vi.fn().mockResolvedValue(undefined)
       }
     })
@@ -55,6 +57,7 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd: vi.fn().mockResolvedValue(undefined),
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote: vi.fn().mockResolvedValue(undefined)
       }
     })
@@ -75,6 +78,7 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd,
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote: vi.fn().mockResolvedValue(undefined)
       }
     })
@@ -97,6 +101,7 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd,
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote: vi.fn().mockResolvedValue(undefined)
       }
     })
@@ -118,6 +123,7 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd: vi.fn().mockResolvedValue(undefined),
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote
       }
     })
@@ -153,10 +159,34 @@ describe('NoticeBoard', () => {
         pendingIds: [],
         onAdd: vi.fn().mockResolvedValue(undefined),
         onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged: vi.fn().mockResolvedValue(undefined),
         onDeleteNote: vi.fn().mockResolvedValue(undefined)
       }
     })
 
     expect(wrapper.text()).toContain('妻')
+  })
+
+  it('確認済みボタンでonToggleAcknowledgedを呼ぶ', async () => {
+    const note = noticeNote(1, '連絡テスト')
+    const onToggleAcknowledged = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(NoticeBoard, {
+      props: {
+        items: [note],
+        pendingIds: [],
+        onAdd: vi.fn().mockResolvedValue(undefined),
+        onTogglePin: vi.fn().mockResolvedValue(undefined),
+        onToggleAcknowledged,
+        onDeleteNote: vi.fn().mockResolvedValue(undefined)
+      }
+    })
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '確認済み')!
+      .trigger('click')
+    await flushPromises()
+
+    expect(onToggleAcknowledged).toHaveBeenCalledWith(note)
   })
 })

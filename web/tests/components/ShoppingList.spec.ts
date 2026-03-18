@@ -17,6 +17,7 @@ function shoppingNote(id: number, body: string, done: boolean): Note {
     body,
     author: '',
     pinned: false,
+    acknowledged: false,
     done,
     created_at: now,
     updated_at: now

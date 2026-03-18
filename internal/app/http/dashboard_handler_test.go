@@ -47,6 +47,10 @@ func (r *dashboardStubNotesRepo) SetPinned(context.Context, int64, bool) (domain
 	return domainnotes.Note{}, false, nil
 }
 
+func (r *dashboardStubNotesRepo) SetAcknowledged(context.Context, int64, bool) (domainnotes.Note, bool, error) {
+	return domainnotes.Note{}, false, nil
+}
+
 func (r *dashboardStubNotesRepo) SetDone(context.Context, int64, bool) (domainnotes.Note, bool, error) {
 	return domainnotes.Note{}, false, nil
 }
