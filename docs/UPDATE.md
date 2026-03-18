@@ -14,9 +14,13 @@ git rev-parse --short HEAD
 git describe --tags --always
 ```
 
-### 2. `/api/v1/status` の確認
+### 2. アプリ状態の確認
 
-更新前にアプリ状態を確認します。`AUTH_TOKEN` を設定している前提です。
+`AUTH_TOKEN` の有無で確認手順が変わります。
+
+#### `AUTH_TOKEN` を設定している場合
+
+`/api/v1/status` を確認します。
 
 ```bash
 curl http://localhost:8080/api/v1/status \
@@ -30,14 +34,39 @@ curl http://localhost:8080/api/v1/status \
 - `auth.enabled` が想定どおり
 - `lastBackup` が極端に古くない
 
+#### `AUTH_TOKEN` を使わない場合
+
+`/api/v1/status` と `/api/v1/admin/backup` は利用できないため、`/api/v1/health` とログで確認します。
+
+```bash
+curl http://localhost:8080/api/v1/health
+docker compose logs --tail=50 app
+```
+
+確認ポイント:
+
+- `/api/v1/health` が `200` を返す
+- ログに DB や設定読込のエラーが出ていない
+
 ### 3. 手動バックアップ実行
 
 更新前バックアップは必須です。  
 バックアップに失敗した場合は、更新を中止してください。
 
+#### `AUTH_TOKEN` を設定している場合
+
 ```bash
 curl -X POST http://localhost:8080/api/v1/admin/backup \
   -H "Authorization: Bearer <token>"
+```
+
+#### `AUTH_TOKEN` を使わない場合
+
+ホスト側の `./data/app.db` を手動で退避します。
+
+```bash
+mkdir -p ./data/backups
+cp ./data/app.db ./data/backups/app-$(date +%Y%m%d-%H%M%S)-pre-update.db
 ```
 
 ## 2. 更新実行
@@ -64,17 +93,20 @@ docker compose up --build -d
 
 ### 3. ヘルパースクリプトを使う場合
 
-`AUTH_TOKEN` を設定している場合は、以下でも更新できます。  
-このスクリプトは「更新前バックアップ -> 再ビルド -> status確認」を順に実行し、途中で失敗したら停止します。
+以下のスクリプトでも更新できます。  
+このスクリプトは「更新前バックアップ -> 再ビルド -> 更新後確認」を順に実行し、途中で失敗したら停止します。
 
 ```bash
-AUTH_TOKEN=<token> ./scripts/update.sh
+./scripts/update.sh
 ```
 
-必要に応じて `APP_URL` を上書きできます。
+`AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。  
+`AUTH_TOKEN` を使わない場合は、`./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` を確認します。
+
+必要に応じて `APP_URL`、待機回数、待機秒数を上書きできます。
 
 ```bash
-APP_URL=http://localhost:8080 AUTH_TOKEN=<token> ./scripts/update.sh
+APP_URL=http://localhost:8080 WAIT_RETRIES=12 WAIT_SECONDS=5 AUTH_TOKEN=<token> ./scripts/update.sh
 ```
 
 ## 3. 更新後チェック
@@ -84,7 +116,9 @@ APP_URL=http://localhost:8080 AUTH_TOKEN=<token> ./scripts/update.sh
 - ブラウザで `http://localhost:8080` を開く
 - ダッシュボードが表示されることを確認する
 
-### 2. `/api/v1/status` 確認
+### 2. アプリ状態の再確認
+
+#### `AUTH_TOKEN` を設定している場合
 
 ```bash
 curl http://localhost:8080/api/v1/status \
@@ -96,6 +130,18 @@ curl http://localhost:8080/api/v1/status \
 - `db.ok` が `true`
 - `config.garbageScheduleLoaded` が `true`
 - `serverTime` が更新されている
+
+#### `AUTH_TOKEN` を使わない場合
+
+```bash
+curl http://localhost:8080/api/v1/health
+docker compose logs --tail=50 app
+```
+
+確認ポイント:
+
+- `/api/v1/health` が `200` を返す
+- ログに DB や設定読込のエラーが出ていない
 
 ### 3. 主要操作確認
 
@@ -130,4 +176,4 @@ docker compose up --build -d
 
 - `scripts/update.sh` は自動ロールバックしません
 - 更新前バックアップに失敗した場合は、その時点で更新を止める運用にしてください
-- `AUTH_TOKEN` を使わない運用では、更新ヘルパーは使わず手順を手動で実施してください
+- `AUTH_TOKEN` を使わない運用でも、`scripts/update.sh` はファイルコピー方式で更新前バックアップを作成できます
