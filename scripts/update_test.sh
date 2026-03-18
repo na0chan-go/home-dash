@@ -91,7 +91,7 @@ run_script() {
     WAIT_SECONDS=0 \
     DATA_DIR="$2/data" \
     BACKUP_DIR="$2/data/backups" \
-    DB_PATH="${5:-$2/data/app.db}" \
+    DB_PATH="${5:-/data/app.db}" \
     ENV_FILE="${6:-$ROOT_DIR/.env}" \
     AUTH_TOKEN="${3:-}" \
     sh "$ROOT_DIR/scripts/update.sh"
@@ -119,7 +119,7 @@ test_token_mode() {
 
   assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/status"
-  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose --env-file $ROOT_DIR/.env up --build -d"
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose up --build -d"
 }
 
 test_noauth_mode() {
@@ -131,7 +131,7 @@ test_noauth_mode() {
 
   run_script noauth "$case_dir" > "$case_dir/stdout"
 
-  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose --env-file $ROOT_DIR/.env stop app"
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose stop app"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/health"
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/dashboard"
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
@@ -270,8 +270,7 @@ test_env_db_path_mode() {
 test_env_relative_db_path_mode() {
   write_default_fake_curl
   case_dir="$TEST_TMPDIR/envrel"
-  mkdir -p "$case_dir/data/backups" "$ROOT_DIR/tmp"
-  printf 'db' > "$ROOT_DIR/tmp/rel.db"
+  mkdir -p "$case_dir/data/backups"
   TEST_LOG="$case_dir/log"
   env_file="$case_dir/.env"
   printf 'DB_PATH=tmp/rel.db\n' > "$env_file"
@@ -285,10 +284,12 @@ test_env_relative_db_path_mode() {
     BACKUP_DIR="$case_dir/data/backups" \
     ENV_FILE="$env_file" \
     AUTH_TOKEN="" \
-    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout" 2>"$case_dir/stderr" && {
+      echo "expected relative db path run to fail" >&2
+      exit 1
+    }
 
-  ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
-  rm -f "$ROOT_DIR/tmp/rel.db"
+  assert_contains "$case_dir/stderr" "DB_PATH は /data 配下のみ対応しています"
 }
 
 test_explicit_empty_db_path_uses_default() {
@@ -315,6 +316,45 @@ test_explicit_empty_db_path_uses_default() {
   ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
 }
 
+test_relative_env_file_mode() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/relenv"
+  mkdir -p "$case_dir/data/backups"
+  printf 'db' > "$case_dir/data/app.db"
+  TEST_LOG="$case_dir/log"
+  printf 'AUTH_TOKEN=from-relative-env\n' > "$ROOT_DIR/.env.production"
+
+  (
+    cd "$ROOT_DIR/scripts"
+    PATH="$FAKEBIN:$PATH" \
+      TEST_LOG="$TEST_LOG" \
+      TEST_MODE=token \
+      WAIT_RETRIES=1 \
+      WAIT_SECONDS=0 \
+      DATA_DIR="$case_dir/data" \
+      BACKUP_DIR="$case_dir/data/backups" \
+      ENV_FILE=.env.production \
+      AUTH_TOKEN="" \
+      sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+  )
+
+  assert_contains "$case_dir/log" "POST http://localhost:8080/api/v1/admin/backup"
+  assert_contains "$case_dir/log" "docker compose --env-file $ROOT_DIR/.env.production up --build -d"
+  rm -f "$ROOT_DIR/.env.production"
+}
+
+test_default_env_file_optional() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/noenvfile"
+  mkdir -p "$case_dir/data/backups"
+  printf 'db' > "$case_dir/data/app.db"
+  TEST_LOG="$case_dir/log"
+
+  run_script noauth "$case_dir" > "$case_dir/stdout"
+
+  assert_contains "$case_dir/log" "PWD=$ROOT_DIR docker compose stop app"
+}
+
 test_token_mode
 test_noauth_mode
 test_degraded_status_fails
@@ -324,5 +364,7 @@ test_env_auth_token_mode
 test_env_db_path_mode
 test_env_relative_db_path_mode
 test_explicit_empty_db_path_uses_default
+test_relative_env_file_mode
+test_default_env_file_optional
 
 echo "update.sh tests passed"
