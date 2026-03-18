@@ -176,11 +176,7 @@ async function confirmDelete(): Promise<void> {
             :disabled="isPending(note.id)"
             :aria-label="note.acknowledged ? '確認解除' : '確認済みにする'"
             @click="onToggleAcknowledged(note)"
-          >
-            <span class="notice-icon-indicator" aria-hidden="true">
-              {{ note.acknowledged ? '✓' : '' }}
-            </span>
-          </button>
+          />
           <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
             {{ note.pinned ? 'ピン解除' : 'ピン' }}
           </button>
@@ -282,9 +278,36 @@ async function confirmDelete(): Promise<void> {
 }
 
 .notice-icon-button {
+  position: relative;
   min-width: 40px;
   padding: 0;
   background: rgba(255, 255, 255, 0.92);
+}
+
+.notice-icon-button::before,
+.notice-icon-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.notice-icon-button::before {
+  width: 17px;
+  height: 17px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  transform: translate(-50%, -50%);
+}
+
+.notice-icon-button::after {
+  width: 7px;
+  height: 12px;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  opacity: 0;
+  transform: translate(-50%, -58%) rotate(45deg);
 }
 
 .notice-icon-button.is-active {
@@ -293,17 +316,8 @@ async function confirmDelete(): Promise<void> {
   color: #ffffff;
 }
 
-.notice-icon-indicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 17px;
-  height: 17px;
-  border: 2px solid currentColor;
-  border-radius: 4px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  line-height: 1;
+.notice-icon-button.is-active::after {
+  opacity: 1;
 }
 
 .notice-author-chip {
