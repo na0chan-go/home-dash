@@ -103,13 +103,14 @@ docker compose up --build -d
 ./scripts/update.sh
 ```
 
-`AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。  
+`AUTH_TOKEN` を設定している場合は Bearer 付きで `/api/v1/status` を確認します。`.env` に `AUTH_TOKEN` を書いている場合も自動で読み取ります。  
 `AUTH_TOKEN` を使わない場合は、アプリ停止後に `./data/app.db` をファイルコピーで退避したうえで `/api/v1/health` と `/api/v1/dashboard` を確認します。
 
-必要に応じて `APP_URL`、待機回数、待機秒数を上書きできます。
+必要に応じて `APP_URL`、待機回数、待機秒数、`.env` のパスを上書きできます。
 
 ```bash
 APP_URL=http://localhost:8080 WAIT_RETRIES=12 WAIT_SECONDS=5 AUTH_TOKEN=<token> ./scripts/update.sh
+ENV_FILE=.env.production ./scripts/update.sh
 ```
 
 ## 3. 更新後チェック

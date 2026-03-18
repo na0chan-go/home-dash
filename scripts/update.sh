@@ -10,8 +10,8 @@ WAIT_SECONDS=${WAIT_SECONDS:-5}
 DATA_DIR=${DATA_DIR:-"$ROOT_DIR/data"}
 BACKUP_DIR=${BACKUP_DIR:-"$DATA_DIR/backups"}
 DB_PATH=${DB_PATH:-"$DATA_DIR/app.db"}
+ENV_FILE=${ENV_FILE:-"$ROOT_DIR/.env"}
 
-AUTH_HEADER="Authorization: Bearer $AUTH_TOKEN"
 BACKUP_URL="$APP_URL/api/v1/admin/backup"
 STATUS_URL="$APP_URL/api/v1/status"
 HEALTH_URL="$APP_URL/api/v1/health"
@@ -23,18 +23,64 @@ body_matches() {
   printf '%s\n' "$body" | grep -Eq "$pattern"
 }
 
-backup_before_update() {
+strip_wrapping_quotes() {
+  value=$1
+  case "$value" in
+    \"*\")
+      value=${value#\"}
+      value=${value%\"}
+      ;;
+    \'*\')
+      value=${value#\'}
+      value=${value%\'}
+      ;;
+  esac
+  printf '%s\n' "$value"
+}
+
+load_auth_token_from_env_file() {
+  if [ ! -f "$ENV_FILE" ]; then
+    return 1
+  fi
+
+  line=$(grep -E '^[[:space:]]*AUTH_TOKEN=' "$ENV_FILE" | tail -n 1 || true)
+  if [ -z "$line" ]; then
+    return 1
+  fi
+
+  value=${line#*=}
+  value=$(printf '%s\n' "$value" | sed 's/[[:space:]]*$//')
+  strip_wrapping_quotes "$value"
+}
+
+resolve_auth_token() {
   if [ -n "$AUTH_TOKEN" ]; then
+    printf '%s\n' "$AUTH_TOKEN"
+    return 0
+  fi
+
+  load_auth_token_from_env_file || true
+}
+
+docker_compose() {
+  (
+    cd "$ROOT_DIR"
+    docker compose "$@"
+  )
+}
+
+backup_before_update() {
+  if [ -n "$EFFECTIVE_AUTH_TOKEN" ]; then
     echo "[1/3] 更新前バックアップを実行します"
     curl --fail --silent --show-error \
       -X POST "$BACKUP_URL" \
-      -H "$AUTH_HEADER"
+      -H "Authorization: Bearer $EFFECTIVE_AUTH_TOKEN"
     printf '\n'
     return
   fi
 
   echo "[1/3] AUTH_TOKEN 未設定のため、アプリを停止してから更新前バックアップを作成します"
-  docker compose stop app >/dev/null 2>&1 || true
+  docker_compose stop app >/dev/null
 
   if [ ! -f "$DB_PATH" ]; then
     echo "DB ファイルが見つかりません: $DB_PATH" >&2
@@ -86,7 +132,7 @@ wait_for_dashboard() {
 wait_for_status() {
   attempt=1
   while [ "$attempt" -le "$WAIT_RETRIES" ]; do
-    if status_body=$(curl --silent --show-error --fail "$STATUS_URL" -H "$AUTH_HEADER" 2>/dev/null) &&
+    if status_body=$(curl --silent --show-error --fail "$STATUS_URL" -H "Authorization: Bearer $EFFECTIVE_AUTH_TOKEN" 2>/dev/null) &&
       body_matches "$status_body" '"ok"[[:space:]]*:[[:space:]]*true' &&
       body_matches "$status_body" '"garbageScheduleLoaded"[[:space:]]*:[[:space:]]*true'; then
       printf '%s\n' "$status_body"
@@ -104,13 +150,13 @@ wait_for_status() {
   return 1
 }
 
+EFFECTIVE_AUTH_TOKEN=$(resolve_auth_token)
 backup_before_update
 
 echo "[2/3] docker compose up --build -d を実行します"
-cd "$ROOT_DIR"
-docker compose up --build -d
+docker_compose up --build -d
 
-if [ -n "$AUTH_TOKEN" ]; then
+if [ -n "$EFFECTIVE_AUTH_TOKEN" ]; then
   echo "[3/3] 更新後の status を確認します"
   wait_for_status
 else
