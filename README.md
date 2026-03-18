@@ -335,6 +335,7 @@ GitHub Actions で以下をチェックします。
 - 開発ルール: `AGENT.md`
 - アーキテクチャ概要: `docs/ARCHITECTURE.md`
 - リリース手順: `docs/RELEASE.md`
+- 更新手順: `docs/UPDATE.md`
 - 変更履歴: `CHANGELOG.md`
 - 運用ログ（日次1分）: `docs/OPS_LOG.md`
 - 週次トリアージ手順: `docs/TRIAGE.md`
