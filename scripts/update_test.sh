@@ -234,11 +234,36 @@ test_env_auth_token_mode() {
   assert_contains "$case_dir/log" "GET http://localhost:8080/api/v1/status"
 }
 
+test_env_db_path_mode() {
+  write_default_fake_curl
+  case_dir="$TEST_TMPDIR/envdb"
+  mkdir -p "$case_dir/data/backups" "$case_dir/data/custom"
+  printf 'db' > "$case_dir/data/custom/alt.db"
+  TEST_LOG="$case_dir/log"
+  env_file="$case_dir/.env"
+  printf 'DB_PATH=/data/custom/alt.db\n' > "$env_file"
+
+  PATH="$FAKEBIN:$PATH" \
+    TEST_LOG="$TEST_LOG" \
+    TEST_MODE=noauth \
+    WAIT_RETRIES=1 \
+    WAIT_SECONDS=0 \
+    DATA_DIR="$case_dir/data" \
+    BACKUP_DIR="$case_dir/data/backups" \
+    ENV_FILE="$env_file" \
+    AUTH_TOKEN="" \
+    DB_PATH="" \
+    sh "$ROOT_DIR/scripts/update.sh" > "$case_dir/stdout"
+
+  ls "$case_dir"/data/backups/app-*-pre-update.db >/dev/null 2>&1
+}
+
 test_token_mode
 test_noauth_mode
 test_degraded_status_fails
 test_partial_status_body_fails
 test_stop_failure_fails
 test_env_auth_token_mode
+test_env_db_path_mode
 
 echo "update.sh tests passed"

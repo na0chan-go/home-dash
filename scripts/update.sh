@@ -9,7 +9,6 @@ WAIT_RETRIES=${WAIT_RETRIES:-12}
 WAIT_SECONDS=${WAIT_SECONDS:-5}
 DATA_DIR=${DATA_DIR:-"$ROOT_DIR/data"}
 BACKUP_DIR=${BACKUP_DIR:-"$DATA_DIR/backups"}
-DB_PATH=${DB_PATH:-"$DATA_DIR/app.db"}
 ENV_FILE=${ENV_FILE:-"$ROOT_DIR/.env"}
 
 BACKUP_URL="$APP_URL/api/v1/admin/backup"
@@ -38,12 +37,13 @@ strip_wrapping_quotes() {
   printf '%s\n' "$value"
 }
 
-load_auth_token_from_env_file() {
+load_env_value_from_env_file() {
+  key=$1
   if [ ! -f "$ENV_FILE" ]; then
     return 1
   fi
 
-  line=$(grep -E '^[[:space:]]*AUTH_TOKEN=' "$ENV_FILE" | tail -n 1 || true)
+  line=$(grep -E "^[[:space:]]*$key=" "$ENV_FILE" | tail -n 1 || true)
   if [ -z "$line" ]; then
     return 1
   fi
@@ -59,7 +59,34 @@ resolve_auth_token() {
     return 0
   fi
 
-  load_auth_token_from_env_file || true
+  load_env_value_from_env_file AUTH_TOKEN || true
+}
+
+resolve_container_db_path() {
+  if [ -n "${DB_PATH:-}" ]; then
+    printf '%s\n' "$DB_PATH"
+    return 0
+  fi
+
+  value=$(load_env_value_from_env_file DB_PATH || true)
+  if [ -n "$value" ]; then
+    printf '%s\n' "$value"
+    return 0
+  fi
+
+  printf '%s\n' "/data/app.db"
+}
+
+resolve_host_db_path() {
+  container_db_path=$1
+  case "$container_db_path" in
+    /data/*)
+      printf '%s/%s\n' "$DATA_DIR" "${container_db_path#/data/}"
+      ;;
+    *)
+      printf '%s\n' "$container_db_path"
+      ;;
+  esac
 }
 
 docker_compose() {
@@ -82,14 +109,14 @@ backup_before_update() {
   echo "[1/3] AUTH_TOKEN 未設定のため、アプリを停止してから更新前バックアップを作成します"
   docker_compose stop app >/dev/null
 
-  if [ ! -f "$DB_PATH" ]; then
-    echo "DB ファイルが見つかりません: $DB_PATH" >&2
+  if [ ! -f "$HOST_DB_PATH" ]; then
+    echo "DB ファイルが見つかりません: $HOST_DB_PATH" >&2
     exit 1
   fi
 
   mkdir -p "$BACKUP_DIR"
   backup_path="$BACKUP_DIR/app-$(date +%Y%m%d-%H%M%S)-pre-update.db"
-  cp "$DB_PATH" "$backup_path"
+  cp "$HOST_DB_PATH" "$backup_path"
   echo "バックアップを作成しました: $backup_path"
 }
 
@@ -151,6 +178,8 @@ wait_for_status() {
 }
 
 EFFECTIVE_AUTH_TOKEN=$(resolve_auth_token)
+CONTAINER_DB_PATH=$(resolve_container_db_path)
+HOST_DB_PATH=$(resolve_host_db_path "$CONTAINER_DB_PATH")
 backup_before_update
 
 echo "[2/3] docker compose up --build -d を実行します"
