@@ -181,10 +181,7 @@ describe('NoticeBoard', () => {
       }
     })
 
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === '確認済み')!
-      .trigger('click')
+    await wrapper.get('button[aria-label="確認済みにする"]').trigger('click')
     await flushPromises()
 
     expect(onToggleAcknowledged).toHaveBeenCalledWith(note)

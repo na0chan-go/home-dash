@@ -169,25 +169,28 @@ async function confirmDelete(): Promise<void> {
           <span class="notice-author-chip">{{ authorLabel(note) }}</span>
           <span class="hd-list-body">{{ note.body }}</span>
         </div>
-        <button
-          class="hd-btn hd-btn-small"
-          type="button"
-          :disabled="isPending(note.id)"
-          @click="onToggleAcknowledged(note)"
-        >
-          {{ note.acknowledged ? '確認解除' : '確認済み' }}
-        </button>
-        <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
-          {{ note.pinned ? 'ピン解除' : 'ピン' }}
-        </button>
-        <button
-          class="hd-btn hd-btn-small hd-btn-danger"
-          type="button"
-          :disabled="isPending(note.id)"
-          @click="requestDelete(note)"
-        >
-          削除
-        </button>
+        <div class="notice-actions">
+          <button
+            class="hd-btn hd-btn-small notice-icon-button"
+            type="button"
+            :disabled="isPending(note.id)"
+            :aria-label="note.acknowledged ? '確認解除' : '確認済みにする'"
+            @click="onToggleAcknowledged(note)"
+          >
+            ✅
+          </button>
+          <button class="hd-btn hd-btn-small" type="button" :disabled="isPending(note.id)" @click="onTogglePin(note)">
+            {{ note.pinned ? 'ピン解除' : 'ピン' }}
+          </button>
+          <button
+            class="hd-btn hd-btn-small hd-btn-danger"
+            type="button"
+            :disabled="isPending(note.id)"
+            @click="requestDelete(note)"
+          >
+            削除
+          </button>
+        </div>
       </li>
     </ul>
     <p v-else class="hd-empty">連絡はありません</p>
@@ -222,6 +225,10 @@ async function confirmDelete(): Promise<void> {
   opacity: 0.82;
 }
 
+.notice-board .hd-list-item {
+  align-items: flex-start;
+}
+
 .notice-author-field {
   display: grid;
   grid-column: 1 / -1;
@@ -254,8 +261,28 @@ async function confirmDelete(): Promise<void> {
 }
 
 .notice-content {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 8px;
+}
+
+.notice-board .hd-list-body {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.notice-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.notice-icon-button {
+  min-width: 40px;
+  padding: 0;
+  font-size: 1rem;
 }
 
 .notice-author-chip {
@@ -278,6 +305,11 @@ async function confirmDelete(): Promise<void> {
 
   .notice-board .hd-composer .hd-btn-primary {
     width: 100%;
+  }
+
+  .notice-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>
