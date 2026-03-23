@@ -9,7 +9,7 @@ MVP0では次の3機能に限定しています。
 
 ## 画面イメージ
 
-![HomeDash ダッシュボード画面](docs/screenshots/dashboard-20260304.png)
+![HomeDash ダッシュボード画面](docs/screenshots/dashboard-20260323.png)
 
 HomeDash のダッシュボード画面イメージです。
 
